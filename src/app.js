@@ -1,7 +1,6 @@
-const dev = true
 const express = require('express');
 const path = require('path');
-const fs = require('fs');
+const fs = require('fs'); 
 
 const ejs = require('ejs');
 
