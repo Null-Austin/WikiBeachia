@@ -1,0 +1,77 @@
+// Classic Markdown Color Palette - SCSS Variables
+
+// Accents/misc
+$_white: #FFFFFFff;
+$_azure: #2B7FFFff;
+$_light-orange: #F4DABAff;
+$_dun: #E7CFB5ff;
+$_dun-2: #DCC1A3ff;
+$_cinnabar: #F24834ff;
+$_black-olive: #423D38ff;
+$_caput-mortuum: #59322Fff;
+$_bistre: #4A2D24ff;
+
+// Text colors
+$md-text-primary: #24292f;
+$md-text-secondary: #656d76;
+$md-text-muted: #8c959f;
+$md-text-inverse: #ffffff;
+
+// Background colors
+$md-bg-primary: #ffffff;
+$md-bg-secondary: #f6f8fa;
+$md-bg-tertiary: #f0f3f6;
+$md-bg-code: #f6f8fa;
+$md-bg-code-block: #f6f8fa;
+
+// Border colors
+$md-border-primary: #d1d9e0;
+$md-border-secondary: #e1e4e8;
+$md-border-muted: $_cinnabar;
+
+// Accent colors
+$md-accent-blue: #0969da;
+$md-accent-blue-hover: #084896;
+$md-accent-green: #1a7f37;
+$md-accent-red: #cf222e;
+$md-accent-orange: #d1242f;
+$md-accent-purple: #8250df;
+
+// Code highlighting
+$md-code-text: #24292f;
+$md-code-bg: #f6f8fa;
+$md-code-border: #d1d9e0;
+
+// Blockquote
+$md-blockquote-border: #d1d9e0;
+$md-blockquote-bg: #f8f9fa;
+$md-blockquote-text: #656d76;
+
+// Table
+$md-table-border: #d1d9e0;
+$md-table-header-bg: #f6f8fa;
+$md-table-row-even: #ffffff;
+$md-table-row-odd: #f6f8fa;
+
+// Links
+$md-link-color: #0969da;
+$md-link-hover: #0860ca;
+$md-link-visited: #8250df;
+
+body {
+    background-color: $_light-orange;
+    div#main-content {
+        color: $_black-olive;
+    }
+    div#main-content,div#header{
+        background-color: $_dun;
+        border: $_bistre 1.5px solid;
+    }
+}
+a{
+    color: $md-accent-blue;
+    text-decoration: none;
+}
+a:hover{
+    color: $md-accent-blue-hover;
+}

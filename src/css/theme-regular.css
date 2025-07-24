@@ -1,0 +1,19 @@
+body {
+  background-color: #f4daba;
+}
+body div#main-content {
+  color: #423d38;
+}
+body div#main-content, body div#header {
+  background-color: #e7cfb5;
+  border: #4a2d24 1.5px solid;
+}
+
+a {
+  color: #0969da;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #084896;
+}

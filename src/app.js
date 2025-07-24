@@ -1,6 +1,7 @@
 const dev = true
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 
 const ejs = require('ejs');
 
@@ -12,22 +13,20 @@ app.set('view engine', 'html');
 app.set('views', path.join(__dirname, 'pages'));
 
 app.get('/', (req, res) => {
-  res.send('Hello, World!');
+  res.render('index',{
+    'header':fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8')
+  });
 });
 
 if (dev){
-    app.get('/pages/:page', (req, res) => {
-        const page = req.params.page;
-        res.render(`${page}`);
-    });
-    app.get('/css/:page', (req, res) => {
-        const page = req.params.page;
-        res.sendFile(path.join(__dirname, 'css', page));
-    });
-    app.get('/js/:page', (req, res) => {
-        const page = req.params.page;
-        res.sendFile(path.join(__dirname, 'js', page));
-    });
+  app.get('/css/:page', (req, res) => {
+    const page = req.params.page;
+    res.sendFile(path.join(__dirname, 'css', page));
+  });
+  app.get('/js/:page', (req, res) => {
+    const page = req.params.page;
+    res.sendFile(path.join(__dirname, 'js', page));
+  });
 }
 
 app.listen(port, () => {

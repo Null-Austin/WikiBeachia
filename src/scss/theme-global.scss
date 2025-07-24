@@ -1,0 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap');
+body{
+    margin: 0;
+    padding: 0;
+    margin-top: 10px;
+
+    // header
+    div#header{
+        width: 68%;
+        margin: 0 auto;
+        padding: 10px;
+    }
+
+    //font
+    font-family: "Nunito Sans", sans-serif;
+        font-optical-sizing: auto;
+        font-weight: 400;
+        font-style: normal;
+        font-variation-settings:
+            "wdth" 100,
+            "YTLC" 500;
+    
+    // css
+    div#main-content {
+        margin-top: 10px;
+    }
+    div#main-content,div#header{
+        border-radius: 5px;
+    }
+}
