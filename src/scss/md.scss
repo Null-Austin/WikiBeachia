@@ -319,5 +319,83 @@ body {
             padding: 0.25em 0.5em;
             white-space: nowrap;
         }
+
+        // Simple form styling
+        .form-container {
+            h1 {
+                margin-bottom: 1.5rem;
+            }
+        }
+
+        .create-post-form {
+            .form-group {
+                margin-bottom: 1.25rem;
+                
+                label {
+                    display: block;
+                    font-weight: 600;
+                    margin-bottom: 0.25rem;
+                    font-size: 0.9rem;
+                }
+                
+                input[type="text"],
+                textarea {
+                    width: 100%;
+                    padding: 0.5rem;
+                    border: 1px solid $md-border-primary;
+                    border-radius: 3px;
+                    font-size: 1rem;
+                    font-family: inherit;
+                    background-color: $md-bg-primary;
+                    box-sizing: border-box;
+                    
+                    &:focus {
+                        outline: none;
+                        border-color: $md-accent-blue;
+                    }
+                }
+                
+                textarea {
+                    resize: vertical;
+                    min-height: 120px;
+                    font-family: monospace;
+                    line-height: 1.4;
+                }
+                
+                .form-help {
+                    font-size: 0.8rem;
+                    color: $md-text-muted;
+                    margin-top: 0.25rem;
+                }
+            }
+            
+            .form-actions {
+                margin-top: 1.5rem;
+                
+                .btn {
+                    padding: 0.5rem 1rem;
+                    margin-right: 0.5rem;
+                    border: 1px solid $md-border-primary;
+                    border-radius: 3px;
+                    font-size: 0.9rem;
+                    cursor: pointer;
+                    background-color: $md-bg-secondary;
+                    
+                    &.btn-primary {
+                        background-color: $md-accent-blue;
+                        color: white;
+                        border-color: $md-accent-blue;
+                        
+                        &:hover {
+                            background-color: $md-accent-blue-hover;
+                        }
+                    }
+                    
+                    &:hover {
+                        background-color: $md-bg-tertiary;
+                    }
+                }
+            }
+        }
     }
 }

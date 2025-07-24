@@ -30,6 +30,11 @@ app.get('/', (req, res) => {
 app.get('/blog',(req,res)=>{
   res.redirect('/')
 })
+app.get('/create-post',(req,res)=>{
+  res.render('create-post',{
+    'header':fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8')
+  }); 
+})
 
 // dynamic endpoints
 app.get('/blog/:name', async (req, res) => {
@@ -58,11 +63,11 @@ app.get('/js/:page', (req, res) => {
 // api endpoints
 app.post('/api/v1/create-page', async (req, res) => {
   let body = req.body;
-  if (!body || !body.name || !body.display_name || !body.content) {
+  if (!body || !body.display_name || !body.content) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
-  let { name, display_name, content } = body;
-  name = name.toLowerCase().replace(/\s+/g, '_');
+  let { display_name, content } = body;
+  let name = display_name.toLowerCase().replace(/\s+/g, '_');
   db.pages.createPage(name, display_name, content)
     .then(() => {
       res.status(201).json({ message: 'Page created successfully...', url: `/blog/${name}` });

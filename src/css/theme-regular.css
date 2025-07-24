@@ -3,10 +3,39 @@ body {
 }
 body div#main-content {
   color: #423d38;
+  border-radius: 8px;
+  margin: 1rem auto;
+  max-width: 800px;
 }
 body div#main-content, body div#header {
   background-color: #e7cfb5;
   border: #4a2d24 1.5px solid;
+}
+body .form-container .create-post-form .form-group input[type=text],
+body .form-container .create-post-form .form-group textarea {
+  background-color: white;
+  border-color: #dcc1a3;
+}
+body .form-container .create-post-form .form-group input[type=text]:focus,
+body .form-container .create-post-form .form-group textarea:focus {
+  border-color: #2b7fff;
+}
+body .form-container .create-post-form .form-group label {
+  color: #59322f;
+}
+body .form-container .create-post-form .form-group .form-help {
+  color: #59322f;
+  opacity: 0.7;
+}
+body .form-container .create-post-form .form-actions .btn.btn-primary {
+  background-color: #2b7fff;
+  border-color: #2b7fff;
+}
+body .form-container .create-post-form .form-actions .btn.btn-primary:hover {
+  background-color: rgb(0, 97.8679245283, 247);
+}
+body .form-container h1 {
+  color: #59322f;
 }
 
 a {
