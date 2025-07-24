@@ -14,11 +14,15 @@ body{
     //font
     font-family: "Nunito Sans", sans-serif;
         font-optical-sizing: auto;
-        font-weight: 400;
-        font-style: normal;
         font-variation-settings:
             "wdth" 100,
             "YTLC" 500;
+    
+    // Default font weight and style for body text only
+    p, div, span {
+        font-weight: 400;
+        font-style: normal;
+    }
     
     // css
     div#main-content {

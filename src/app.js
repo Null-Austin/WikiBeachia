@@ -17,7 +17,18 @@ app.get('/', (req, res) => {
     'header':fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8')
   });
 });
-
+app.get('/blog',(req,res)=>{
+  res.redirect('/')
+})
+app.get('/blog/:name', (req, res) => {
+  res.render('blog',{
+    'header':fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
+    'content':'this would be some basic <i><b>Shazam</b></i>'
+  });
+});
+app.use((req,res,next)=>{
+  res.status(404).redirect('/blog/404')
+})
 if (dev){
   app.get('/css/:page', (req, res) => {
     const page = req.params.page;

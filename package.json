@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/app.js",
-    "sass":"sass --watch src/scss/:src/css/ --no-source-map"
+    "sass": "sass --watch src/scss/:src/css/ --no-source-map"
   },
   "repository": {
     "type": "git",
@@ -21,6 +21,7 @@
   "dependencies": {
     "ejs": "^3.1.10",
     "express": "^5.1.0",
-    "sass": "^1.89.2"
+    "sass": "^1.89.2",
+    "sqlite3": "^5.1.7"
   }
 }
