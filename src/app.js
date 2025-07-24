@@ -8,11 +8,13 @@ const ejs = require('ejs');
 
 // Local modules
 const db = require('./modules/db.js');
+  db.init() // Initialize the database
 
 // backend
 const app = express();
 const port = process.env.PORT || 3000;
 
+// setting up middle ware
 app.engine('html', ejs.renderFile);
 app.set('view engine', 'html');
 app.set('views', path.join(__dirname, 'pages'));
