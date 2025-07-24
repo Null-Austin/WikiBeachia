@@ -8,9 +8,23 @@ const _db = new class{
         this.db = db;
     }
     async init(){
-        this.db.run('PRAGMA journal_mode = WAL');
-        this.db.run('PRAGMA synchronous = NORMAL');
-        this.db.prepare('CREATE TABLE IF NOT EXISTS pages (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, display_name TEXT UNIQUE, content TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_modified DATETIME DEFAULT CURRENT_TIMESTAMP, permission INTEGER DEFAULT 0)').run();
+        return new Promise((resolve, reject) => {
+            this.db.serialize(() => {
+                this.db.run('PRAGMA journal_mode = WAL');
+                this.db.run('PRAGMA synchronous = NORMAL');
+                this.db.run('CREATE TABLE IF NOT EXISTS pages (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, display_name TEXT UNIQUE, content TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_modified DATETIME DEFAULT CURRENT_TIMESTAMP, permission INTEGER DEFAULT 0)', (err) => {
+                    if (err) return reject(err);
+                });
+                this.db.run('INSERT OR IGNORE INTO pages (name, display_name, content) VALUES (?, ?, ?)', [
+                    "404",
+                    "Page Not Found",
+                    "This page does not exist. Please check the URL or return to the homepage."
+                ], (err) => {
+                    if (err) return reject(err);
+                    resolve();
+                });
+            });
+        });
     }
     pages = new class{
         constructor(){

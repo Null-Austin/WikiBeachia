@@ -9,7 +9,6 @@ const ejs = require('ejs');
 // Local modules
 const db = require('./modules/db.js');
 const { url } = require('node:inspector');
-  db.init() // Initialize the database
 
 // backend
 const app = express();
@@ -79,7 +78,17 @@ app.use((req,res,next)=>{
   res.status(404).redirect('/blog/404')
 })
 
-// actually listening
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
-});
+// Initialize database and start server
+async function startServer() {
+  try {
+    await db.init(); // Wait for database initialization
+    app.listen(port, () => {
+      console.log(`Server is running on http://localhost:${port}`);
+    });
+  } catch (error) {
+    console.error('Failed to initialize database:', error);
+    process.exit(1);
+  }
+}
+
+startServer();
