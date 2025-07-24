@@ -26,20 +26,17 @@ app.get('/blog/:name', (req, res) => {
     'content':'this would be some basic <i><b>Shazam</b></i>'
   });
 });
+app.get('/css/:page', (req, res) => {
+  const page = req.params.page;
+  res.sendFile(path.join(__dirname, 'css', page));
+});
+app.get('/js/:page', (req, res) => {
+  const page = req.params.page;
+  res.sendFile(path.join(__dirname, 'js', page));
+});
 app.use((req,res,next)=>{
   res.status(404).redirect('/blog/404')
 })
-if (dev){
-  app.get('/css/:page', (req, res) => {
-    const page = req.params.page;
-    res.sendFile(path.join(__dirname, 'css', page));
-  });
-  app.get('/js/:page', (req, res) => {
-    const page = req.params.page;
-    res.sendFile(path.join(__dirname, 'js', page));
-  });
-}
-
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
