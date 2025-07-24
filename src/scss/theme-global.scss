@@ -27,6 +27,7 @@ body{
     // css
     div#main-content {
         margin-top: 10px;
+        transform: translateY(-1px);
     }
     div#main-content,div#header{
         border-radius: 5px;

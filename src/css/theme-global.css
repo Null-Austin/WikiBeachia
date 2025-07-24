@@ -18,6 +18,7 @@ body p, body div, body span {
 }
 body div#main-content {
   margin-top: 10px;
+  transform: translateY(-1px);
 }
 body div#main-content, body div#header {
   border-radius: 5px;
