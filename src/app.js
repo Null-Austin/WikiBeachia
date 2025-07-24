@@ -1,9 +1,15 @@
-const express = require('express');
-const path = require('path');
-const fs = require('fs'); 
+// Node modules
+const path = require('node:path');
+const fs = require('node:fs'); 
 
+// third party modules
+const express = require('express');
 const ejs = require('ejs');
 
+// Local modules
+const db = require('./modules/db.js');
+
+// backend
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -19,11 +25,17 @@ app.get('/', (req, res) => {
 app.get('/blog',(req,res)=>{
   res.redirect('/')
 })
-app.get('/blog/:name', (req, res) => {
-  res.render('blog',{
-    'header':fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
-    'content':'this would be some basic <i><b>Shazam</b></i>'
-  });
+app.get('/blog/:name', async (req, res) => {
+  try {
+    let page = await db.pages.getPage(req.params.name)
+    res.render('blog',{
+      'header':fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
+      'content':page.content,
+      'title': page.display_name || page.name
+    });
+  } catch (error) {
+    return res.status(404).redirect('/blog/404')
+  }
 });
 app.get('/css/:page', (req, res) => {
   const page = req.params.page;

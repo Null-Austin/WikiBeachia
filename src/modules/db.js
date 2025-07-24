@@ -21,7 +21,7 @@ const _db = new class{
             return new Promise((res,rej)=>{
                 this.db.prepare('SELECT * FROM pages WHERE name = ?').get(name,(err,row)=>{
                     if(err) return rej(err);
-                    if(!row) return rej(new Error('Page not found'));
+                    if(!row) return rej('no page found');
                     res(row);
                 })
             })
