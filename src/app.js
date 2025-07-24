@@ -18,6 +18,8 @@ const port = process.env.PORT || 3000;
 app.engine('html', ejs.renderFile);
 app.set('view engine', 'html');
 app.set('views', path.join(__dirname, 'pages'));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // static end points
 app.get('/', (req, res) => {
@@ -51,6 +53,15 @@ app.get('/css/:page', (req, res) => {
 app.get('/js/:page', (req, res) => {
   const page = req.params.page;
   res.sendFile(path.join(__dirname, 'js', page));
+});
+
+// api endpoints
+app.post('/api/v1/create-page', async (req, res) => {
+  let body = req.body;
+  if (!body || !body.name || !body.display_name || !body.content) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+  res.status(201).json({ message: 'Page created successfully' });
 });
 
 // error handling
