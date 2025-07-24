@@ -8,6 +8,7 @@ const ejs = require('ejs');
 
 // Local modules
 const db = require('./modules/db.js');
+const { url } = require('node:inspector');
   db.init() // Initialize the database
 
 // backend
@@ -61,7 +62,16 @@ app.post('/api/v1/create-page', async (req, res) => {
   if (!body || !body.name || !body.display_name || !body.content) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
-  res.status(201).json({ message: 'Page created successfully' });
+  let { name, display_name, content } = body;
+  name = name.toLowerCase().replace(/\s+/g, '_');
+  db.pages.createPage(name, display_name, content)
+    .then(() => {
+      res.status(201).json({ message: 'Page created successfully...', url: `/blog/${name}` });
+    })
+    .catch((error) => {
+      console.error('Error creating page:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    });
 });
 
 // error handling
