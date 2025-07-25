@@ -263,7 +263,7 @@ app.get('/wikian/dashboard', async (req, res) => {
     user: user
   });
 });
-app.get('/wikian/create-post',(req,res)=>{
+app.get('/wikian/create-page',(req,res)=>{
   const formConfig = forms.getFormConfig('create-post');
   if (!formConfig) {
     return res.status(404).redirect('/login');
