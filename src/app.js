@@ -303,7 +303,6 @@ app.get('/admin/:url',async (req,res,next)=>{
 })
 app.get('/admin/dashboard', async (req, res) => {
   let user = req.cookies.token ? await db.users.getUserByToken(req.cookies.token) : null;
-  user.username = '<img src="something" onerror="alert(\'XSS\')">';
   res.render('admin/dashboard', {
     header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
     user: user
