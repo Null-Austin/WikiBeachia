@@ -258,7 +258,7 @@ app.get('/wikian/:url',async (req,res,next)=>{
 })
 app.get('/wikian/dashboard', async (req, res) => {
   let user = req.cookies.token ? await db.users.getUserByToken(req.cookies.token) : null;
-  res.render('admin/dashboard', {
+  res.render('wikian/dashboard', {
     header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
     user: user
   });
