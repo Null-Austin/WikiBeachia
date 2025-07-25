@@ -50,10 +50,10 @@ const formConfigs = {
   },
   'register': {
     title: 'Register',
-    formTitle: 'Create New Account',
+    formTitle: 'Apply for an account',
     method: 'POST',
-    action: '/api/v1/register',
-    submitText: 'Create Account',
+    action: '/api/v1/users/apply',
+    submitText: 'Apply',
     cancelUrl: '/form/login',
     fields: [
       {
@@ -65,11 +65,25 @@ const formConfigs = {
         helpText: 'Must be 3-20 characters long'
       },
       {
+        name:'reason',
+        label: 'Reason for Registration',
+        type: 'textarea',
+        placeholder: 'Why do you want to register?',
+        required: true
+      },
+      {
         name: 'email',
         label: 'Email Address',
         type: 'email',
         placeholder: 'your.email@example.com',
         required: true
+      },
+      {
+        name:'phone',
+        label: 'Phone Number',
+        type: 'tel',
+        placeholder: 'Phone number (optional)',
+        required: false
       },
       {
         name: 'password',
