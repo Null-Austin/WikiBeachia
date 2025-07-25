@@ -321,6 +321,9 @@ app.get('/admin/:url',async (req,res,next)=>{
     return res.redirect('/login');
   }
 })
+app.get('/admin',(req,res)=>{
+  res.redirect('/admin/dashboard');
+})
 app.get('/admin/dashboard', async (req, res) => {
   let user = req.cookies.token ? await db.users.getUserByToken(req.cookies.token) : null;
   res.render('admin/dashboard', {
@@ -332,6 +335,12 @@ app.get('/admin/dashboard', async (req, res) => {
 
 // error handling
 app.use((req,res,next)=>{
+  if (req.url.startsWith('/admin/')){
+    return res.status(404).redirect('/admin/dashboard');
+  }
+  if (req.url.startsWith('/wikian/')){
+    return res.status(404).redirect('/wikian/dashboard');
+  }
   res.status(404).redirect('/wiki/404')
 })
 
