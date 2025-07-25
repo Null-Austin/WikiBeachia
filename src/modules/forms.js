@@ -48,47 +48,6 @@ const formConfigs = {
       }
     ]
   },
-  
-  'contact': {
-    title: 'Contact Us',
-    formTitle: 'Get in Touch',
-    method: 'POST',
-    action: '/api/v1/contact',
-    submitText: 'Send Message',
-    cancelUrl: '/',
-    fields: [
-      {
-        name: 'name',
-        label: 'Full Name',
-        type: 'text',
-        placeholder: 'Your full name',
-        required: true
-      },
-      {
-        name: 'email',
-        label: 'Email Address',
-        type: 'email',
-        placeholder: 'your.email@example.com',
-        required: true
-      },
-      {
-        name: 'subject',
-        label: 'Subject',
-        type: 'text',
-        placeholder: 'Message subject',
-        required: true
-      },
-      {
-        name: 'message',
-        label: 'Message',
-        type: 'textarea',
-        placeholder: 'Your message...',
-        rows: 8,
-        required: true
-      }
-    ]
-  },
-  
   'register': {
     title: 'Register',
     formTitle: 'Create New Account',
@@ -129,51 +88,6 @@ const formConfigs = {
       }
     ]
   },
-  
-  'settings': {
-    title: 'Settings',
-    formTitle: 'Account Settings',
-    method: 'POST',
-    action: '/api/v1/update-settings',
-    submitText: 'Save Settings',
-    cancelUrl: '/',
-    fields: [
-      {
-        name: 'display_name',
-        label: 'Display Name',
-        type: 'text',
-        placeholder: 'Your display name',
-        required: true
-      },
-      {
-        name: 'email',
-        label: 'Email Address',
-        type: 'email',
-        placeholder: 'your.email@example.com',
-        required: true
-      },
-      {
-        name: 'bio',
-        label: 'Bio',
-        type: 'textarea',
-        placeholder: 'Tell us about yourself...',
-        rows: 4,
-        required: false
-      },
-      {
-        name: 'notifications',
-        label: 'Email Notifications',
-        type: 'select',
-        required: true,
-        placeholder: 'Choose notification preference',
-        options: [
-          { value: 'all', label: 'All notifications' },
-          { value: 'important', label: 'Important only' },
-          { value: 'none', label: 'No notifications' }
-        ]
-      }
-    ]
-  }
 };
 
 module.exports = {
