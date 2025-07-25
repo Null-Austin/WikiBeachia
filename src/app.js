@@ -156,15 +156,27 @@ app.post('/api/v1/users/apply', async (req, res) => {
 });
 
 // wiki content creation pages
+app.get('/wikian/:url',(req,res,next)=>{
+  if (developer){
+    return next();
+  }
+  return res.redirect('/login')
+})
 app.get('/wikian/create-post',(req,res)=>{
   const formConfig = forms.getFormConfig('create-post');
   if (!formConfig) {
-    return res.status(404).redirect('/wiki/404');
+    return res.status(404).redirect('/login');
   }
   renderForm(res, formConfig);
 })
 
 // Admin pages
+app.get('/admin/:url',(req,res,next)=>{
+  if (developer){
+    return next();
+  }
+  return res.redirect('/login')
+})
 
 // error handling
 app.use((req,res,next)=>{
