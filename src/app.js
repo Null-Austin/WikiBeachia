@@ -8,12 +8,24 @@ const fs = require('node:fs');
 // third party modules
 const express = require('express');
 const ejs = require('ejs');
+const colors = require('colors/safe');
 
 // Local modules
 const db = require('./modules/db.js');
 const userAuth = require('./modules/userauth.js');
 const forms = require('./modules/forms.js');
 const schemas = require('./modules/schemas.js');
+
+// check developer mode
+if (developer){
+  console.log(colors.bgBlack(
+    colors.red(
+      colors.underline(
+        'Developer/Testing mode activated. - this product is not intended for prod use.'
+      )
+    ))
+  );
+}
 
 // Utility function to render forms
 function renderForm(res, formConfig) {
@@ -42,14 +54,7 @@ app.get('/', (req, res) => {
 });
 app.get('/blog',(req,res)=>{
   res.redirect('/')
-})
-app.get('/create-post',(req,res)=>{
-  const formConfig = forms.getFormConfig('create-post');
-  if (!formConfig) {
-    return res.status(404).redirect('/blog/404');
-  }
-  renderForm(res, formConfig);
-})
+});
 app.get('/login',(req,res)=>{
   const formConfig = forms.getFormConfig('login');
   renderForm(res, formConfig);
@@ -60,16 +65,18 @@ app.get('/register',(req,res)=>{
 })
 
 // Generic form route for future forms
-app.get('/form/:formType', (req, res) => {
-  const formType = req.params.formType;
-  const formConfig = forms.getFormConfig(formType);
-  
-  if (!formConfig) {
-    return res.status(404).redirect('/blog/404');
-  }
+if (developer){
+  app.get('/form/:formType', (req, res, next) => {
+    const formType = req.params.formType;
+    const formConfig = forms.getFormConfig(formType);
+    
+    if (!formConfig) {
+      return next();
+    }
 
-  renderForm(res, formConfig);
-})
+    renderForm(res, formConfig);
+  })
+}
 
 // dynamic endpoints
 app.get('/blog/:name', async (req, res) => {
@@ -147,6 +154,17 @@ app.post('/api/v1/users/apply', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+// wikipedian posting pages
+app.get('/wiki/create-post',(req,res)=>{
+  const formConfig = forms.getFormConfig('create-post');
+  if (!formConfig) {
+    return res.status(404).redirect('/blog/404');
+  }
+  renderForm(res, formConfig);
+})
+
+// Admin pages
 
 // error handling
 app.use((req,res,next)=>{

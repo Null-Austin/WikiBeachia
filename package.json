@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/app.js",
     "sass": "sass --watch src/scss/:src/css/ --no-source-map",
-    "test":"node src/app.js -t"
+    "test": "node src/app.js -t"
   },
   "repository": {
     "type": "git",
@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/Null-Austin/WikiBeachia#readme",
   "dependencies": {
+    "colors": "^1.4.0",
     "ejs": "^3.1.10",
     "express": "^5.1.0",
     "joi": "^17.13.3",
