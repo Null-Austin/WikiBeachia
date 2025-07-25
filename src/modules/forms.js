@@ -78,13 +78,13 @@ const formConfigs = {
         placeholder: 'your.email@example.com',
         required: true
       },
-      {
-        name:'phone',
-        label: 'Phone Number',
-        type: 'tel',
-        placeholder: 'Phone number (optional)',
-        required: false
-      },
+      // {
+      //   name:'phone',
+      //   label: 'Phone Number',
+      //   type: 'tel',
+      //   placeholder: 'Phone number (optional)',
+      //   required: false
+      // },
       {
         name: 'password',
         label: 'Password',
