@@ -126,7 +126,7 @@ app.post('/api/v1/login', async (req, res) => {
   if (!body || !body.username || !body.password) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
-  const { username, password } = body;
+  const { username, password, returnTo } = body;
   try {
     const user = await userAuth.login(username, password);
     
@@ -138,9 +138,31 @@ app.post('/api/v1/login', async (req, res) => {
       sameSite: 'lax'  // CSRF protection
     });
     
-    // Remove token from response for security
-    const { token, ...userWithoutToken } = user;
-    res.json({ message: 'Login successful', user: userWithoutToken });
+    // Clear any previous returnTo cookie
+    res.clearCookie('returnTo');
+    
+    // Determine redirect URL
+    let redirectUrl = '/';
+    if (returnTo && returnTo.startsWith('/')) {
+      redirectUrl = returnTo;
+    } else if (req.cookies.returnTo && req.cookies.returnTo.startsWith('/')) {
+      redirectUrl = req.cookies.returnTo;
+    } else if (user.role >= 100) {
+      redirectUrl = '/admin/dashboard'; // Admin users go to admin dashboard
+    } else if (user.role >= 10) {
+      redirectUrl = '/wikian/create-post'; // Content creators go to create page
+    }
+    
+    // Return minimal user info and redirect URL
+    res.json({ 
+      message: 'Login successful', 
+      redirectUrl: redirectUrl,
+      user: {
+        username: user.username,
+        display_name: user.display_name,
+        role: user.role
+      }
+    });
   } catch (err) {
     if (err.message === 'Invalid username or password') {
       return res.status(401).json({ error: 'Invalid username or password' });
@@ -149,6 +171,35 @@ app.post('/api/v1/login', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+app.post('/api/v1/logout', async (req, res) => {
+  try {
+    const token = req.cookies.token;
+    if (token) {
+      // Clear the token from the database
+      try {
+        const user = await db.users.getUserByToken(token);
+        await db.users.setToken(user.id, null);
+      } catch (err) {
+        // Token might be invalid or user not found, but that's okay for logout
+        console.log('Token cleanup failed during logout:', err.message);
+      }
+    }
+    
+    // Clear the token cookie
+    res.clearCookie('token');
+    res.clearCookie('returnTo');
+    
+    res.json({ message: 'Logout successful', redirectUrl: '/' });
+  } catch (err) {
+    console.error('Error during logout:', err);
+    // Even if there's an error, clear the cookie and respond successfully
+    res.clearCookie('token');
+    res.clearCookie('returnTo');
+    res.json({ message: 'Logout successful', redirectUrl: '/' });
+  }
+});
+
 app.post('/api/v1/users/apply', async (req, res) => {
   const body = req.body;
   if (!body || !body.username || !body.email || !body.reason || !body.password) {
@@ -176,16 +227,32 @@ app.get('/wikian/:url',async (req,res,next)=>{
   
   let token = req.cookies.token;
   if (!token) {
+    // Store the current URL for redirect after login
+    res.cookie('returnTo', req.originalUrl, {
+      httpOnly: true,
+      maxAge: 10 * 60 * 1000, // 10 minutes
+      sameSite: 'lax'
+    });
     return res.redirect('/login');
   }
   
   try {
     const user = await db.users.getUserByToken(token);
     if (user.role < 10) {
+      res.cookie('returnTo', req.originalUrl, {
+        httpOnly: true,
+        maxAge: 10 * 60 * 1000, // 10 minutes
+        sameSite: 'lax'
+      });
       return res.redirect('/login');
     }
     return next();
   } catch (err) {
+    res.cookie('returnTo', req.originalUrl, {
+      httpOnly: true,
+      maxAge: 10 * 60 * 1000, // 10 minutes
+      sameSite: 'lax'
+    });
     return res.redirect('/login');
   }
 })
@@ -205,19 +272,75 @@ app.get('/admin/:url',async (req,res,next)=>{
   
   let token = req.cookies.token;
   if (!token) {
+    // Store the current URL for redirect after login
+    res.cookie('returnTo', req.originalUrl, {
+      httpOnly: true,
+      maxAge: 10 * 60 * 1000, // 10 minutes
+      sameSite: 'lax'
+    });
     return res.redirect('/login');
   }
   
   try {
     const user = await db.users.getUserByToken(token);
     if (user.role < 100) {
+      res.cookie('returnTo', req.originalUrl, {
+        httpOnly: true,
+        maxAge: 10 * 60 * 1000, // 10 minutes
+        sameSite: 'lax'
+      });
       return res.redirect('/login');
     }
     return next();
   } catch (err) {
+    res.cookie('returnTo', req.originalUrl, {
+      httpOnly: true,
+      maxAge: 10 * 60 * 1000, // 10 minutes
+      sameSite: 'lax'
+    });
     return res.redirect('/login');
   }
 })
+
+// Admin route handlers (after middleware)
+app.get('/admin/dashboard', (req, res) => {
+  res.render('index', {
+    header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
+    title: 'Admin Dashboard',
+    content: '<h1>Admin Dashboard</h1><p>Welcome to the admin panel!</p><a href="/admin/applications">View Applications</a>'
+  });
+});
+
+app.get('/admin/applications', async (req, res) => {
+  try {
+    const applications = await db.applications.getAll();
+    const content = `
+      <h1>User Applications</h1>
+      <div class="applications">
+        ${applications.map(app => `
+          <div class="application">
+            <h3>${app.username}</h3>
+            <p><strong>Email:</strong> ${app.email}</p>
+            <p><strong>Reason:</strong> ${app.reason}</p>
+            <p><strong>Applied:</strong> ${new Date(app.created_at).toLocaleDateString()}</p>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    res.render('index', {
+      header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
+      title: 'Applications',
+      content: content
+    });
+  } catch (err) {
+    console.error('Error fetching applications:', err);
+    res.status(500).render('index', {
+      header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
+      title: 'Error',
+      content: '<h1>Error</h1><p>Failed to load applications.</p>'
+    });
+  }
+});
 
 // error handling
 app.use((req,res,next)=>{

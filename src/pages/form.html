@@ -74,5 +74,64 @@
             </form>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('.dynamic-form');
+            const formAction = '<%= action %>';
+            
+            // Handle login and other API forms
+            if (formAction.startsWith('/api/v1/')) {
+                form.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    const formData = new FormData(form);
+                    const data = {};
+                    for (let [key, value] of formData.entries()) {
+                        data[key] = value;
+                    }
+                    
+                    // Add returnTo parameter if it exists in URL
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const returnTo = urlParams.get('returnTo');
+                    if (returnTo) {
+                        data.returnTo = returnTo;
+                    }
+                    
+                    try {
+                        const response = await fetch(formAction, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(data)
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (response.ok) {
+                            // Handle successful response
+                            if (result.redirectUrl) {
+                                window.location.href = result.redirectUrl;
+                            } else if (result.url) {
+                                window.location.href = result.url;
+                            } else {
+                                alert(result.message || 'Success!');
+                                if (formAction.includes('login')) {
+                                    window.location.href = '/';
+                                }
+                            }
+                        } else {
+                            // Handle error response
+                            alert('Error: ' + (result.error || 'Something went wrong'));
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Network error. Please try again.');
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>
