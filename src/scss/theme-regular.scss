@@ -1,3 +1,4 @@
+@use "sass:color";
 // Classic Markdown Color Palette - SCSS Variables
 
 // Accents/misc
@@ -61,13 +62,31 @@ $md-link-visited: #8250df;
 body {
     background-color: $_light-orange;
     div#main-content {
+        .application{
+            button{
+                transition: all .25s;
+                background-color: $_azure;
+                border-color: $_azure;
+                color: $_white;
+                cursor: pointer;
+                &:hover{
+                    background-color: darken($_azure, 5%);
+                    border-color: darken($_azure, 5%);
+                }
+            }
+        }
         color: $_black-olive;
         border-radius: 8px;
         margin: 1rem auto;
         max-width: 800px;
         padding: 2rem;
+        textarea {
+            background-color: #423D38ff;
+            color: white;
+            border: 1.1px solid #24292f;
+        }
     }
-    div#main-content,div#header{
+    div#main-content, div#header {
         background-color: $_dun;
         border: $_bistre 1.5px solid;
     }

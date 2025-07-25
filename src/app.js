@@ -16,6 +16,7 @@ const db = require('./modules/db.js');
 const userAuth = require('./modules/userauth.js');
 const forms = require('./modules/forms.js');
 const schemas = require('./modules/schemas.js');
+const { func } = require('joi');
 
 // Simple pre run checks
 if (developer){
@@ -39,7 +40,7 @@ loadSettings().catch(err=>{
   }
 })
 
-// Utility function to render forms
+// Utility functions
 function renderForm(res, formConfig) {
   return res.render('form', {
     ...formConfig,
@@ -122,23 +123,23 @@ app.get('/js/:page', (req, res) => {
 app.post('/api/v1/create-page', async (req, res) => {
   let body = req.body;
   if (!body || !body.display_name || !body.content) {
-    return res.status(400).json({ error: 'Missing required fields' });
+    return res.status(400).json({ error: 'Please provide both a page title and content.' });
   }
   let { display_name, content } = body;
   let name = display_name.toLowerCase().replace(/\s+/g, '_');
   db.pages.createPage(name, display_name, content)
     .then(() => {
-      res.status(201).json({ message: 'Page created successfully...', url: `/wiki/${name}` });
+      res.status(201).json({ message: 'Page created successfully!', url: `/wiki/${name}` });
     })
     .catch((error) => {
       console.error('Error creating page:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      res.status(500).json({ error: 'Unable to create the page at this time. Please try again later.' });
     });
 });
 app.post('/api/v1/login', async (req, res) => {
   const body = req.body;
   if (!body || !body.username || !body.password) {
-    return res.status(400).json({ error: 'Missing required fields' });
+    return res.status(400).json({ error: 'Please enter both username and password.' });
   }
   const { username, password, returnTo } = body;
   try {
@@ -169,7 +170,7 @@ app.post('/api/v1/login', async (req, res) => {
     
     // Return minimal user info and redirect URL
     res.json({ 
-      message: 'Login successful', 
+      message: 'Welcome back! Login successful.', 
       redirectUrl: redirectUrl,
       user: {
         username: user.username,
@@ -179,10 +180,10 @@ app.post('/api/v1/login', async (req, res) => {
     });
   } catch (err) {
     if (err.message === 'Invalid username or password') {
-      return res.status(401).json({ error: 'Invalid username or password' });
+      return res.status(401).json({ error: 'Invalid username or password. Please check your credentials and try again.' });
     }
     console.error('Error during login:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'We encountered an issue while processing your login. Please try again later.' });
   }
 });
 
@@ -217,21 +218,82 @@ app.post('/api/v1/logout', async (req, res) => {
 app.post('/api/v1/users/apply', async (req, res) => {
   const body = req.body;
   if (!body || !body.username || !body.email || !body.reason || !body.password) {
-    return res.status(400).json({ error: 'Missing required fields' });
+    return res.status(400).json({ error: 'Please fill in all required fields to submit your application.' });
   }
-  const { username, email, reason, password } = body;
+  const { username, email, reason, password, returnTo } = body;
   const {error,value} = schemas.registrationSchema.validate({ username, email, reason, password });
   if (error) {
     return res.status(400).json({ error: error.details[0].message });
   }
   try{
     await db.applications.create(username,password,email,reason)
-    res.status(201).json({ message: 'Application created successfully' });
+    
+    // Clear any previous returnTo cookie
+    res.clearCookie('returnTo');
+    
+    // Determine redirect URL
+    let redirectUrl = '/';
+    if (returnTo && returnTo.startsWith('/')) {
+      redirectUrl = returnTo;
+    } else if (req.cookies.returnTo && req.cookies.returnTo.startsWith('/')) {
+      redirectUrl = req.cookies.returnTo;
+    }
+    
+    res.status(201).json({ 
+      message: 'Your application has been submitted successfully! An administrator will review it soon.', 
+      redirectUrl: redirectUrl 
+    });
   } catch(err){
     console.error('Error creating application:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'We encountered an issue while processing your application. Please try again later.' });
   }
 });
+app.post('/api/v1/users/register',async(req,res)=>{
+  let token = req.cookies.token;
+  if (!token || db.users.getUserByToken(token).role < 100) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const body = req.body;
+  if (!body || !body.id){
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+  const { id } = body;
+  try {
+    const application = await db.applications.getById(id);
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+    // Password is already hashed in the application, so use db.users.create directly
+    await db.users.create(application.username, application.password, application.username, 10);
+    await db.applications.delete(id);
+    res.status(200).json({ message: 'User registered successfully' });
+  } catch (err) {
+    console.error('Error registering user:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+})
+app.post('/api/v1/users/register/deny',async(req,res)=>{
+  let token = req.cookies.token;
+  if (!token || db.users.getUserByToken(token).role < 100) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const body = req.body;
+  if (!body || !body.id){
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+  const { id } = body;
+  try {
+    const application = await db.applications.getById(id);
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+    await db.applications.delete(id);
+    res.status(200).json({ message: 'User registration denied successfully' });
+  } catch (err) {
+    console.error('Error denying user registration:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+})
 
 // wiki content creation pages
 app.get('/wikian/:url',async (req,res,next)=>{
@@ -269,6 +331,9 @@ app.get('/wikian/:url',async (req,res,next)=>{
     });
     return res.redirect('/login');
   }
+})
+app.get('/wikian/',(req,res)=>{
+  res.redirect('/wikian/dashboard');
 })
 app.get('/wikian/dashboard', async (req, res) => {
   let user = req.cookies.token ? await db.users.getUserByToken(req.cookies.token) : null;
@@ -334,6 +399,23 @@ app.get('/admin/dashboard', async (req, res) => {
     wiki:settings
   });
 });
+app.get('/admin/applications',async (req,res)=>{
+  let offset = Number(req.query.offset) || 0;
+  let limit = Number(req.query.limit) || 10;
+
+  try {
+    let applications = await db.applications.get(offset,limit);
+    res.status(200).render('admin/applications',{
+      applications:applications,
+      wiki:settings,
+      header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
+    })
+  } catch (error){
+    console.error('Error fetching applications:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+
+})
 
 // error handling
 app.use((req,res,next)=>{

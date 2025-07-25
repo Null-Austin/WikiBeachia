@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= wiki.site_name %> | Admin Dashboard</title>
+    <link rel="stylesheet" href="/css/theme-global.css">
+    <link rel="stylesheet" href="/css/index.css">
+    <link rel="stylesheet" href="/css/theme-regular.css">
+    <link rel="stylesheet" href="/css/md.css">
+    <script src="/js/notifications.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Tomorrow:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+        #main-content > .application > .reason {
+            width: 100%;
+            margin: 0 auto;
+            resize: none;
+            height: auto;
+            min-height: 2em;
+            max-height: 33vh;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+        #main-content > .application {
+            position: relative;
+        }
+        #main-content > .application small.id {
+            display: block;
+            text-align: right;
+            margin-top: 0.5em;
+            color: #888;
+            font-size: 0.9em;
+        }
+        div#main-content > .application > button{
+            border: 2px solid;
+            border-radius: 5px;
+        }
+        .open-sans {
+            font-family: "Open Sans", sans-serif;
+            font-optical-sizing: auto;
+            font-style: normal;
+            font-variation-settings:
+                "wdth" 100;
+        }
+        #main-content > .application > .info{
+            font-size: 12px;
+        }
+    </style>
+    <script>
+        async function register(id){
+            try{
+                const response = await fetch('/api/v1/users/register',{
+                    method:'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        id: id
+                    })
+                });
+                
+                if (response.ok) {
+                    notifications.success('User registered successfully!');
+                    setTimeout(() => location.reload(), 1500); // Refresh the page to update the applications list
+                } else {
+                    const errorData = await response.json().catch(() => ({ error: 'Unknown error occurred' }));
+                    notifications.error('Failed to register user: ' + (errorData.error || 'Unknown error'));
+                }
+            } catch(err){
+                console.error(err);
+                notifications.error('Network error occurred while registering user');
+            }
+        }
+        async function reject(id){
+            try{
+                const response = await fetch('/api/v1/users/register/deny',{
+                    method:'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        id: id
+                    })
+                });
+                
+                if (response.ok) {
+                    notifications.success('Application rejected successfully!');
+                    setTimeout(() => location.reload(), 1500); // Refresh the page to update the applications list
+                } else {
+                    const errorData = await response.json().catch(() => ({ error: 'Unknown error occurred' }));
+                    notifications.error('Failed to reject application: ' + (errorData.error || 'Unknown error'));
+                }
+            } catch(err){
+                console.error(err);
+                notifications.error('Network error occurred while rejecting application');
+            }
+        }
+    </script>
+</head>
+<body>
+    <%- header %>
+    <div id="main-content">
+        <% applications.forEach(element => { %>
+         <div class="application">
+            <h2>Application:</h2>
+            <span class="info">Username: </span><span><%= element.username %></span><br>
+            <span class="info">Email: </span><span><%= element.email %></span><br>
+            <span class="info">Reason: </span><br><textarea readonly=true class="reason"><%= element.reason %></textarea><br>
+            <button onclick="register('<%= element.id %>')">Register</button> <button onclick="reject('<%= element.id %>')">Reject</button><br>
+            <span><%= element.created_at %></span><br>
+            <small class="id open-sans">ID: <span class="id"><%= element.id %></span></small>
+         </div>
+        <% }) %>
+    </div>
+    <script>
+        // Auto-resize textareas to fit content
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, window.innerHeight * 0.33) + 'px';
+        }
+
+        // Initialize auto-resize for all reason textareas
+        document.addEventListener('DOMContentLoaded', function() {
+            const textareas = document.querySelectorAll('.reason');
+            textareas.forEach(textarea => {
+                autoResize(textarea);
+                textarea.addEventListener('input', () => autoResize(textarea));
+            });
+        });
+    </script>
+</body>
+</html>

@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="/css/index.css">
     <link rel="stylesheet" href="/css/theme-regular.css">
     <link rel="stylesheet" href="/css/md.css">
+    <script src="/js/notifications.js"></script>
 </head>
 <body>
     <%- header %>
@@ -116,18 +117,18 @@
                             } else if (result.url) {
                                 window.location.href = result.url;
                             } else {
-                                alert(result.message || 'Success!');
+                                showNotification(result.message || 'Success!', 'success');
                                 if (formAction.includes('login')) {
-                                    window.location.href = '/';
+                                    setTimeout(() => window.location.href = '/', 1500);
                                 }
                             }
                         } else {
                             // Handle error response
-                            alert('Error: ' + (result.error || 'Something went wrong'));
+                            showNotification(result.error || 'Something went wrong', 'error');
                         }
                     } catch (error) {
                         console.error('Error:', error);
-                        alert('Network error. Please try again.');
+                        showNotification('Network error. Please try again.', 'error');
                     }
                 });
             }

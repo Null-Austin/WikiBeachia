@@ -8,6 +8,22 @@ body div#main-content {
   max-width: 800px;
   padding: 2rem;
 }
+body div#main-content .application button {
+  transition: all 0.25s;
+  background-color: #2b7fff;
+  border-color: #2b7fff;
+  color: white;
+  cursor: pointer;
+}
+body div#main-content .application button:hover {
+  background-color: rgb(17.5, 111.6037735849, 255);
+  border-color: rgb(17.5, 111.6037735849, 255);
+}
+body div#main-content textarea {
+  background-color: #423d38;
+  color: white;
+  border: 1.1px solid #24292f;
+}
 body div#main-content, body div#header {
   background-color: #e7cfb5;
   border: #4a2d24 1.5px solid;

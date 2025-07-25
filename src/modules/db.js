@@ -65,6 +65,15 @@ const _db = new class{
         constructor(){
             this.db = db;
         }
+        async delete(id){
+            return new Promise((res, rej) => {
+                this.db.prepare('DELETE FROM applications WHERE id = ?').run(id, function(err){
+                    if(err) return rej(err);
+                    if(this.changes === 0) return rej(new Error('Application not found'));
+                    res(this.changes);
+                });
+            });
+        }
         async create(username, password, email, reason){
             password = hash(password);
             return new Promise((res, rej) => {
