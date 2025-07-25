@@ -156,7 +156,7 @@ app.post('/api/v1/users/apply', async (req, res) => {
 });
 
 // wiki content creation pages
-app.get('/wiki/create-post',(req,res)=>{
+app.get('/wikian/create-post',(req,res)=>{
   const formConfig = forms.getFormConfig('create-post');
   if (!formConfig) {
     return res.status(404).redirect('/wiki/404');
