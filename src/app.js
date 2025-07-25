@@ -26,6 +26,8 @@ if (developer){
       )
     ))
   );
+} else {
+  console.log(colors.red('this product is not intended for prod use.\n    This product may require modification to work.\n    To get prod ready, please look at builds,\n    and when they are avalible ;)'))
 }
 let settings = {};
 async function loadSettings() {
