@@ -9,6 +9,15 @@ const ejs = require('ejs');
 // Local modules
 const db = require('./modules/db.js');
 const userAuth = require('./modules/userauth.js');
+const forms = require('./modules/forms.js');
+
+// Utility function to render forms
+function renderForm(res, formConfig) {
+  return res.render('form', {
+    ...formConfig,
+    header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8')
+  });
+}
 
 // backend
 const app = express();
@@ -31,9 +40,23 @@ app.get('/blog',(req,res)=>{
   res.redirect('/')
 })
 app.get('/create-post',(req,res)=>{
-  res.render('create-post',{
-    'header':fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8')
-  }); 
+  const formConfig = forms.getFormConfig('create-post');
+  if (!formConfig) {
+    return res.status(404).redirect('/blog/404');
+  }
+  renderForm(res, formConfig);
+})
+
+// Generic form route for future forms
+app.get('/form/:formType', (req, res) => {
+  const formType = req.params.formType;
+  const formConfig = forms.getFormConfig(formType);
+  
+  if (!formConfig) {
+    return res.status(404).redirect('/blog/404');
+  }
+
+  renderForm(res, formConfig);
 })
 
 // dynamic endpoints

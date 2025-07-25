@@ -11,31 +11,97 @@ body div#main-content, body div#header {
   background-color: #e7cfb5;
   border: #4a2d24 1.5px solid;
 }
+/* Form styling - works for both create-post-form and dynamic-form */
 body .form-container .create-post-form .form-group input[type=text],
-body .form-container .create-post-form .form-group textarea {
+body .form-container .create-post-form .form-group textarea,
+body .form-container .dynamic-form .form-group input[type=text],
+body .form-container .dynamic-form .form-group input[type=email],
+body .form-container .dynamic-form .form-group input[type=password],
+body .form-container .dynamic-form .form-group input[type=number],
+body .form-container .dynamic-form .form-group input[type=url],
+body .form-container .dynamic-form .form-group input[type=tel],
+body .form-container .dynamic-form .form-group textarea,
+body .form-container .dynamic-form .form-group select {
   background-color: white;
   border-color: #dcc1a3;
+  border: 1px solid #dcc1a3;
+  border-radius: 4px;
+  padding: 8px 12px;
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 14px;
 }
+
 body .form-container .create-post-form .form-group input[type=text]:focus,
-body .form-container .create-post-form .form-group textarea:focus {
+body .form-container .create-post-form .form-group textarea:focus,
+body .form-container .dynamic-form .form-group input:focus,
+body .form-container .dynamic-form .form-group textarea:focus,
+body .form-container .dynamic-form .form-group select:focus {
   border-color: #2b7fff;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(43, 127, 255, 0.1);
 }
-body .form-container .create-post-form .form-group label {
+
+body .form-container .create-post-form .form-group label,
+body .form-container .dynamic-form .form-group label {
   color: #59322f;
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
 }
-body .form-container .create-post-form .form-group .form-help {
+
+body .form-container .create-post-form .form-group .form-help,
+body .form-container .dynamic-form .form-group .form-help {
   color: #59322f;
   opacity: 0.7;
+  font-size: 12px;
+  margin-top: 4px;
 }
-body .form-container .create-post-form .form-actions .btn.btn-primary {
+
+body .form-container .create-post-form .form-actions .btn.btn-primary,
+body .form-container .dynamic-form .form-actions .btn.btn-primary {
   background-color: #2b7fff;
   border-color: #2b7fff;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-right: 10px;
 }
-body .form-container .create-post-form .form-actions .btn.btn-primary:hover {
+
+body .form-container .create-post-form .form-actions .btn.btn-primary:hover,
+body .form-container .dynamic-form .form-actions .btn.btn-primary:hover {
   background-color: rgb(0, 97.8679245283, 247);
+}
+
+body .form-container .dynamic-form .form-actions .btn.btn-secondary {
+  background-color: #6c757d;
+  border-color: #6c757d;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  text-decoration: none;
+  display: inline-block;
+}
+
+body .form-container .dynamic-form .form-actions .btn.btn-secondary:hover {
+  background-color: #5a6268;
 }
 body .form-container h1 {
   color: #59322f;
+}
+
+body .form-container .form-group {
+  margin-bottom: 20px;
+}
+
+body .form-container .form-actions {
+  margin-top: 30px;
 }
 
 a {

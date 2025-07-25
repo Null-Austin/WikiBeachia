@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title || 'Form' %></title>
+    <link rel="stylesheet" href="/css/theme-global.css">
+    <link rel="stylesheet" href="/css/index.css">
+    <link rel="stylesheet" href="/css/theme-regular.css">
+    <link rel="stylesheet" href="/css/md.css">
+</head>
+<body>
+    <%- header %>
+    <div id="main-content">
+        <div class="form-container">
+            <h1><%= formTitle %></h1>
+            <form method="<%= method || 'POST' %>" action="<%= action %>" class="dynamic-form">
+                <% fields.forEach(function(field) { %>
+                    <div class="form-group">
+                        <label for="<%= field.name %>"><%= field.label %></label>
+                        <% if (field.type === 'textarea') { %>
+                            <textarea 
+                                name="<%= field.name %>" 
+                                id="<%= field.name %>" 
+                                placeholder="<%= field.placeholder || '' %>" 
+                                rows="<%= field.rows || 5 %>"
+                                <%= field.required ? 'required' : '' %>
+                            ></textarea>
+                        <% } else if (field.type === 'select') { %>
+                            <select 
+                                name="<%= field.name %>" 
+                                id="<%= field.name %>"
+                                <%= field.required ? 'required' : '' %>
+                            >
+                                <% if (field.placeholder) { %>
+                                    <option value="" disabled selected><%= field.placeholder %></option>
+                                <% } %>
+                                <% if (field.options && field.options.length > 0) { %>
+                                    <% field.options.forEach(function(option) { %>
+                                        <option value="<%= option.value %>"><%= option.label %></option>
+                                    <% }) %>
+                                <% } %>
+                            </select>
+                        <% } else { %>
+                            <input 
+                                type="<%= field.type || 'text' %>" 
+                                name="<%= field.name %>" 
+                                id="<%= field.name %>" 
+                                placeholder="<%= field.placeholder || '' %>"
+                                <%= field.required ? 'required' : '' %>
+                                <%= (typeof field.min !== 'undefined') ? 'min="' + field.min + '"' : '' %>
+                                <%= (typeof field.max !== 'undefined') ? 'max="' + field.max + '"' : '' %>
+                                <%= (typeof field.step !== 'undefined') ? 'step="' + field.step + '"' : '' %>
+                            >
+                        <% } %>
+                        <% if (field.helpText) { %>
+                            <div class="form-help"><%= field.helpText %></div>
+                        <% } %>
+                    </div>
+                <% }) %>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary"><%= submitText || 'Submit' %></button>
+                    <% if (typeof cancelUrl !== 'undefined' && cancelUrl) { %>
+                        <a href="<%= cancelUrl %>" class="btn btn-secondary">Cancel</a>
+                    <% } %>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
