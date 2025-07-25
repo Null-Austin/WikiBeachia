@@ -84,17 +84,13 @@ app.post('/api/v1/login', async (req, res) => {
   }
   const { username, password } = body;
   try {
-    let user = await userAuth.getUserByUsername(username);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    if (user.password !== userAuth.hash(password)) {
-      return res.status(401).json({ error: 'Invalid password' });
-    }
-    user.token = (await userAuth.userToken(user.id,userAuth.randomBytes())).token;
+    const user = await userAuth.login(username, password);
     res.send(user);
   } catch (err) {
-    console.error('Error fetching user:', err);
+    if (err.message === 'Invalid username or password') {
+      return res.status(401).json({ error: 'Invalid username or password' });
+    }
+    console.error('Error during login:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

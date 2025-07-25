@@ -28,5 +28,21 @@ const _userAuth = new class{
     async userToken(userid,token){
         return await db.users.setToken(userid,token);
     }
+    async login(username, password){
+        try {
+            let user = await this.getUserByUsername(username);
+            if (user.password !== this.hash(password)) {
+                throw new Error('Invalid username or password');
+            }
+            user.token = (await this.userToken(user.id, this.randomBytes())).token;
+            return user;
+        } catch (err) {
+            // Handle both user not found and other database errors
+            if (err.message === 'User not found') {
+                throw new Error('Invalid username or password');
+            }
+            throw err; // Re-throw other errors
+        }
+    }
 }()
 module.exports = _userAuth;
