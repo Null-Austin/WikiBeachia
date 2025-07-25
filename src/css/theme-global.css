@@ -12,9 +12,16 @@ body div#header {
   margin: 0 auto;
   padding: 10px;
 }
-body p, body div, body span {
+body p, body span {
   font-weight: 400;
   font-style: normal;
+}
+body div {
+  font-weight: inherit;
+  font-style: normal;
+}
+body b, body strong {
+  font-weight: 850 !important;
 }
 body div#main-content {
   margin-top: 10px;

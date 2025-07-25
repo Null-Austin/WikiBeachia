@@ -19,9 +19,20 @@ body{
             "YTLC" 500;
     
     // Default font weight and style for body text only
-    p, div, span {
+    p, span {
         font-weight: 400;
         font-style: normal;
+    }
+    
+    // Reset div font-weight but allow children to inherit properly
+    div {
+        font-weight: inherit;
+        font-style: normal;
+    }
+    
+    // Ensure bold elements always appear bold
+    b, strong {
+        font-weight: 850 !important;
     }
     
     // css
