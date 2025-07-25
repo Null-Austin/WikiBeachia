@@ -14,7 +14,7 @@ const _userAuth = new class{
     }
     async createUser(username,password,display_name=false,role=1){
         password = hash(password);
-        return db.users.create({username,password,display_name,role});
+        return db.users.create(username,password,display_name,role);
     }
     async updateUser(userid, username, password, display_name, role){
         return await db.users.modify(userid, username,password, display_name, role);

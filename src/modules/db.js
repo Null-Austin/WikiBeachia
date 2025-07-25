@@ -143,7 +143,7 @@ const _db = new class{
                     username,
                     password,
                     display_name || null,
-                    json.role || 1,
+                    role || 1,
                     function(err){
                         if(err) return rej(err);
                         res(this.lastID);
