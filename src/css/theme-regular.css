@@ -6,102 +6,146 @@ body div#main-content {
   border-radius: 8px;
   margin: 1rem auto;
   max-width: 800px;
+  padding: 2rem;
 }
 body div#main-content, body div#header {
   background-color: #e7cfb5;
   border: #4a2d24 1.5px solid;
 }
-/* Form styling - works for both create-post-form and dynamic-form */
-body .form-container .create-post-form .form-group input[type=text],
-body .form-container .create-post-form .form-group textarea,
-body .form-container .dynamic-form .form-group input[type=text],
-body .form-container .dynamic-form .form-group input[type=email],
-body .form-container .dynamic-form .form-group input[type=password],
-body .form-container .dynamic-form .form-group input[type=number],
-body .form-container .dynamic-form .form-group input[type=url],
-body .form-container .dynamic-form .form-group input[type=tel],
-body .form-container .dynamic-form .form-group textarea,
-body .form-container .dynamic-form .form-group select {
+body .form-container h1, body .form-container h2, body .form-container h3, body .form-container h4, body .form-container h5, body .form-container h6 {
+  color: #59322f;
+  margin-bottom: 1.5rem;
+}
+body .form-container form .form-group input[type=text],
+body .form-container form .form-group input[type=email],
+body .form-container form .form-group input[type=password],
+body .form-container form .form-group input[type=number],
+body .form-container form .form-group input[type=url],
+body .form-container form .form-group input[type=tel],
+body .form-container form .form-group input[type=search],
+body .form-container form .form-group input[type=date],
+body .form-container form .form-group input[type=time],
+body .form-container form .form-group input[type=datetime-local],
+body .form-container form .form-group textarea,
+body .form-container form .form-group select {
   background-color: white;
   border-color: #dcc1a3;
-  border: 1px solid #dcc1a3;
-  border-radius: 4px;
-  padding: 8px 12px;
-  width: 100%;
-  box-sizing: border-box;
-  font-size: 14px;
+  color: #423d38;
 }
-
-body .form-container .create-post-form .form-group input[type=text]:focus,
-body .form-container .create-post-form .form-group textarea:focus,
-body .form-container .dynamic-form .form-group input:focus,
-body .form-container .dynamic-form .form-group textarea:focus,
-body .form-container .dynamic-form .form-group select:focus {
+body .form-container form .form-group input[type=text]:focus,
+body .form-container form .form-group input[type=email]:focus,
+body .form-container form .form-group input[type=password]:focus,
+body .form-container form .form-group input[type=number]:focus,
+body .form-container form .form-group input[type=url]:focus,
+body .form-container form .form-group input[type=tel]:focus,
+body .form-container form .form-group input[type=search]:focus,
+body .form-container form .form-group input[type=date]:focus,
+body .form-container form .form-group input[type=time]:focus,
+body .form-container form .form-group input[type=datetime-local]:focus,
+body .form-container form .form-group textarea:focus,
+body .form-container form .form-group select:focus {
   border-color: #2b7fff;
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(43, 127, 255, 0.1);
+  box-shadow: 0 0 0 2px rgba(43, 127, 255, 0.15);
 }
-
-body .form-container .create-post-form .form-group label,
-body .form-container .dynamic-form .form-group label {
+body .form-container form .form-group input[type=text]::placeholder,
+body .form-container form .form-group input[type=email]::placeholder,
+body .form-container form .form-group input[type=password]::placeholder,
+body .form-container form .form-group input[type=number]::placeholder,
+body .form-container form .form-group input[type=url]::placeholder,
+body .form-container form .form-group input[type=tel]::placeholder,
+body .form-container form .form-group input[type=search]::placeholder,
+body .form-container form .form-group input[type=date]::placeholder,
+body .form-container form .form-group input[type=time]::placeholder,
+body .form-container form .form-group input[type=datetime-local]::placeholder,
+body .form-container form .form-group textarea::placeholder,
+body .form-container form .form-group select::placeholder {
   color: #59322f;
-  display: block;
-  margin-bottom: 6px;
-  font-weight: 500;
+  opacity: 0.6;
 }
-
-body .form-container .create-post-form .form-group .form-help,
-body .form-container .dynamic-form .form-group .form-help {
+body .form-container form .form-group label {
+  color: #59322f;
+  font-weight: 600;
+}
+body .form-container form .form-group .form-help {
   color: #59322f;
   opacity: 0.7;
-  font-size: 12px;
-  margin-top: 4px;
 }
-
-body .form-container .create-post-form .form-actions .btn.btn-primary,
-body .form-container .dynamic-form .form-actions .btn.btn-primary {
+body .form-container form .form-group.error input, body .form-container form .form-group.error textarea, body .form-container form .form-group.error select {
+  border-color: #f24834;
+}
+body .form-container form .form-group.error input:focus, body .form-container form .form-group.error textarea:focus, body .form-container form .form-group.error select:focus {
+  border-color: #f24834;
+  box-shadow: 0 0 0 2px rgba(242, 72, 52, 0.15);
+}
+body .form-container form .form-group.error .form-help {
+  color: #f24834;
+  opacity: 1;
+}
+body .form-container form .form-actions {
+  border-top-color: #dcc1a3;
+}
+body .form-container form .form-actions .btn {
+  background-color: white;
+  border-color: #dcc1a3;
+  color: #59322f;
+}
+body .form-container form .form-actions .btn:hover {
+  background-color: #dcc1a3;
+  border-color: #59322f;
+  box-shadow: 0 2px 4px rgba(66, 61, 56, 0.1);
+}
+body .form-container form .form-actions .btn.btn-primary {
   background-color: #2b7fff;
   border-color: #2b7fff;
   color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  margin-right: 10px;
 }
-
-body .form-container .create-post-form .form-actions .btn.btn-primary:hover,
-body .form-container .dynamic-form .form-actions .btn.btn-primary:hover {
+body .form-container form .form-actions .btn.btn-primary:hover {
   background-color: rgb(0, 97.8679245283, 247);
+  border-color: rgb(0, 97.8679245283, 247);
 }
-
-body .form-container .dynamic-form .form-actions .btn.btn-secondary {
-  background-color: #6c757d;
-  border-color: #6c757d;
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  text-decoration: none;
-  display: inline-block;
-}
-
-body .form-container .dynamic-form .form-actions .btn.btn-secondary:hover {
-  background-color: #5a6268;
-}
-body .form-container h1 {
+body .form-container form .form-actions .btn.btn-secondary {
+  background-color: #dcc1a3;
+  border-color: #59322f;
   color: #59322f;
 }
-
-body .form-container .form-group {
-  margin-bottom: 20px;
+body .form-container form .form-actions .btn.btn-secondary:hover {
+  background-color: rgb(212.9724409449, 180.5511811024, 144.5275590551);
 }
-
-body .form-container .form-actions {
-  margin-top: 30px;
+body .form-container form .form-actions .btn.btn-danger {
+  background-color: #f24834;
+  border-color: #f24834;
+  color: white;
+}
+body .form-container form .form-actions .btn.btn-danger:hover {
+  background-color: rgb(228.375, 37.125, 14.625);
+}
+body .form-container form fieldset {
+  border-color: #dcc1a3;
+  background-color: rgba(231, 207, 181, 0.3);
+}
+body .form-container form fieldset legend {
+  color: #59322f;
+  background-color: #e7cfb5;
+}
+body .form-container form .form-message.success {
+  background-color: rgba(43, 127, 255, 0.1);
+  color: #2b7fff;
+  border-color: rgba(43, 127, 255, 0.3);
+}
+body .form-container form .form-message.error {
+  background-color: rgba(242, 72, 52, 0.1);
+  color: #f24834;
+  border-color: rgba(242, 72, 52, 0.3);
+}
+body .form-container form .form-message.warning {
+  background-color: rgba(220, 193, 163, 0.3);
+  color: #59322f;
+  border-color: #dcc1a3;
+}
+body .form-container form .form-message.info {
+  background-color: rgba(43, 127, 255, 0.1);
+  color: #2b7fff;
+  border-color: rgba(43, 127, 255, 0.3);
 }
 
 a {

@@ -50,6 +50,10 @@ app.get('/login',(req,res)=>{
   const formConfig = forms.getFormConfig('login');
   renderForm(res, formConfig);
 })
+app.get('/register',(req,res)=>{
+  const formConfig = forms.getFormConfig('register');
+  renderForm(res, formConfig);
+})
 
 // Generic form route for future forms
 app.get('/form/:formType', (req, res) => {

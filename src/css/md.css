@@ -6,36 +6,146 @@ body div#main-content {
   border-radius: 8px;
   margin: 1rem auto;
   max-width: 800px;
+  padding: 2rem;
 }
 body div#main-content, body div#header {
   background-color: #e7cfb5;
   border: #4a2d24 1.5px solid;
 }
-body .form-container .create-post-form .form-group input[type=text],
-body .form-container .create-post-form .form-group textarea {
+body .form-container h1, body .form-container h2, body .form-container h3, body .form-container h4, body .form-container h5, body .form-container h6 {
+  color: #59322f;
+  margin-bottom: 1.5rem;
+}
+body .form-container form .form-group input[type=text],
+body .form-container form .form-group input[type=email],
+body .form-container form .form-group input[type=password],
+body .form-container form .form-group input[type=number],
+body .form-container form .form-group input[type=url],
+body .form-container form .form-group input[type=tel],
+body .form-container form .form-group input[type=search],
+body .form-container form .form-group input[type=date],
+body .form-container form .form-group input[type=time],
+body .form-container form .form-group input[type=datetime-local],
+body .form-container form .form-group textarea,
+body .form-container form .form-group select {
   background-color: white;
   border-color: #dcc1a3;
+  color: #423d38;
 }
-body .form-container .create-post-form .form-group input[type=text]:focus,
-body .form-container .create-post-form .form-group textarea:focus {
+body .form-container form .form-group input[type=text]:focus,
+body .form-container form .form-group input[type=email]:focus,
+body .form-container form .form-group input[type=password]:focus,
+body .form-container form .form-group input[type=number]:focus,
+body .form-container form .form-group input[type=url]:focus,
+body .form-container form .form-group input[type=tel]:focus,
+body .form-container form .form-group input[type=search]:focus,
+body .form-container form .form-group input[type=date]:focus,
+body .form-container form .form-group input[type=time]:focus,
+body .form-container form .form-group input[type=datetime-local]:focus,
+body .form-container form .form-group textarea:focus,
+body .form-container form .form-group select:focus {
   border-color: #2b7fff;
+  box-shadow: 0 0 0 2px rgba(43, 127, 255, 0.15);
 }
-body .form-container .create-post-form .form-group label {
+body .form-container form .form-group input[type=text]::placeholder,
+body .form-container form .form-group input[type=email]::placeholder,
+body .form-container form .form-group input[type=password]::placeholder,
+body .form-container form .form-group input[type=number]::placeholder,
+body .form-container form .form-group input[type=url]::placeholder,
+body .form-container form .form-group input[type=tel]::placeholder,
+body .form-container form .form-group input[type=search]::placeholder,
+body .form-container form .form-group input[type=date]::placeholder,
+body .form-container form .form-group input[type=time]::placeholder,
+body .form-container form .form-group input[type=datetime-local]::placeholder,
+body .form-container form .form-group textarea::placeholder,
+body .form-container form .form-group select::placeholder {
   color: #59322f;
+  opacity: 0.6;
 }
-body .form-container .create-post-form .form-group .form-help {
+body .form-container form .form-group label {
+  color: #59322f;
+  font-weight: 600;
+}
+body .form-container form .form-group .form-help {
   color: #59322f;
   opacity: 0.7;
 }
-body .form-container .create-post-form .form-actions .btn.btn-primary {
+body .form-container form .form-group.error input, body .form-container form .form-group.error textarea, body .form-container form .form-group.error select {
+  border-color: #f24834;
+}
+body .form-container form .form-group.error input:focus, body .form-container form .form-group.error textarea:focus, body .form-container form .form-group.error select:focus {
+  border-color: #f24834;
+  box-shadow: 0 0 0 2px rgba(242, 72, 52, 0.15);
+}
+body .form-container form .form-group.error .form-help {
+  color: #f24834;
+  opacity: 1;
+}
+body .form-container form .form-actions {
+  border-top-color: #dcc1a3;
+}
+body .form-container form .form-actions .btn {
+  background-color: white;
+  border-color: #dcc1a3;
+  color: #59322f;
+}
+body .form-container form .form-actions .btn:hover {
+  background-color: #dcc1a3;
+  border-color: #59322f;
+  box-shadow: 0 2px 4px rgba(66, 61, 56, 0.1);
+}
+body .form-container form .form-actions .btn.btn-primary {
   background-color: #2b7fff;
   border-color: #2b7fff;
+  color: white;
 }
-body .form-container .create-post-form .form-actions .btn.btn-primary:hover {
+body .form-container form .form-actions .btn.btn-primary:hover {
   background-color: rgb(0, 97.8679245283, 247);
+  border-color: rgb(0, 97.8679245283, 247);
 }
-body .form-container h1 {
+body .form-container form .form-actions .btn.btn-secondary {
+  background-color: #dcc1a3;
+  border-color: #59322f;
   color: #59322f;
+}
+body .form-container form .form-actions .btn.btn-secondary:hover {
+  background-color: rgb(212.9724409449, 180.5511811024, 144.5275590551);
+}
+body .form-container form .form-actions .btn.btn-danger {
+  background-color: #f24834;
+  border-color: #f24834;
+  color: white;
+}
+body .form-container form .form-actions .btn.btn-danger:hover {
+  background-color: rgb(228.375, 37.125, 14.625);
+}
+body .form-container form fieldset {
+  border-color: #dcc1a3;
+  background-color: rgba(231, 207, 181, 0.3);
+}
+body .form-container form fieldset legend {
+  color: #59322f;
+  background-color: #e7cfb5;
+}
+body .form-container form .form-message.success {
+  background-color: rgba(43, 127, 255, 0.1);
+  color: #2b7fff;
+  border-color: rgba(43, 127, 255, 0.3);
+}
+body .form-container form .form-message.error {
+  background-color: rgba(242, 72, 52, 0.1);
+  color: #f24834;
+  border-color: rgba(242, 72, 52, 0.3);
+}
+body .form-container form .form-message.warning {
+  background-color: rgba(220, 193, 163, 0.3);
+  color: #59322f;
+  border-color: #dcc1a3;
+}
+body .form-container form .form-message.info {
+  background-color: rgba(43, 127, 255, 0.1);
+  color: #2b7fff;
+  border-color: rgba(43, 127, 255, 0.3);
 }
 
 a {
@@ -290,76 +400,250 @@ body div#main-content kbd {
   padding: 0.25em 0.5em;
   white-space: nowrap;
 }
-body div#main-content .form-container h1 {
+body div#main-content .form-container h1, body div#main-content .form-container h2, body div#main-content .form-container h3, body div#main-content .form-container h4, body div#main-content .form-container h5, body div#main-content .form-container h6 {
   margin-bottom: 1.5rem;
-  border-bottom: none;
-  font-size: 1.75rem;
-  color: #59322f;
+  color: #24292f;
 }
-body div#main-content .create-post-form .form-group {
+body div#main-content .form-container p {
   margin-bottom: 1rem;
 }
-body div#main-content .create-post-form .form-group label {
+body div#main-content form .form-group {
+  margin-bottom: 1.25rem;
+}
+body div#main-content form .form-group label {
   display: block;
-  font-weight: 500;
+  font-weight: 600;
   margin-bottom: 0.5rem;
-  font-size: 1rem;
-  color: #59322f;
+  font-size: 0.95rem;
+  color: #24292f;
+  line-height: 1.4;
 }
-body div#main-content .create-post-form .form-group input[type=text],
-body div#main-content .create-post-form .form-group textarea {
+body div#main-content form .form-group input[type=text],
+body div#main-content form .form-group input[type=email],
+body div#main-content form .form-group input[type=password],
+body div#main-content form .form-group input[type=number],
+body div#main-content form .form-group input[type=url],
+body div#main-content form .form-group input[type=tel],
+body div#main-content form .form-group input[type=search],
+body div#main-content form .form-group input[type=date],
+body div#main-content form .form-group input[type=time],
+body div#main-content form .form-group input[type=datetime-local],
+body div#main-content form .form-group textarea,
+body div#main-content form .form-group select {
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #dcc1a3;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #d1d9e0;
   border-radius: 4px;
   font-size: 1rem;
   font-family: inherit;
-  line-height: 1.5;
+  background-color: #ffffff;
+  color: #24292f;
   box-sizing: border-box;
-  transition: border-color 0.2s ease;
-  background-color: white;
-  color: #423d38;
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
-body div#main-content .create-post-form .form-group input[type=text]:focus,
-body div#main-content .create-post-form .form-group textarea:focus {
+body div#main-content form .form-group input[type=text]:focus,
+body div#main-content form .form-group input[type=email]:focus,
+body div#main-content form .form-group input[type=password]:focus,
+body div#main-content form .form-group input[type=number]:focus,
+body div#main-content form .form-group input[type=url]:focus,
+body div#main-content form .form-group input[type=tel]:focus,
+body div#main-content form .form-group input[type=search]:focus,
+body div#main-content form .form-group input[type=date]:focus,
+body div#main-content form .form-group input[type=time]:focus,
+body div#main-content form .form-group input[type=datetime-local]:focus,
+body div#main-content form .form-group textarea:focus,
+body div#main-content form .form-group select:focus {
   outline: none;
-  border-color: #2b7fff;
-  box-shadow: 0 0 0 1px #2b7fff;
+  border-color: #0969da;
+  box-shadow: 0 0 0 2px rgba(9, 105, 218, 0.1);
 }
-body div#main-content .create-post-form .form-group input[type=text]::placeholder,
-body div#main-content .create-post-form .form-group textarea::placeholder {
-  color: #59322f;
-  opacity: 0.7;
+body div#main-content form .form-group input[type=text]:disabled,
+body div#main-content form .form-group input[type=email]:disabled,
+body div#main-content form .form-group input[type=password]:disabled,
+body div#main-content form .form-group input[type=number]:disabled,
+body div#main-content form .form-group input[type=url]:disabled,
+body div#main-content form .form-group input[type=tel]:disabled,
+body div#main-content form .form-group input[type=search]:disabled,
+body div#main-content form .form-group input[type=date]:disabled,
+body div#main-content form .form-group input[type=time]:disabled,
+body div#main-content form .form-group input[type=datetime-local]:disabled,
+body div#main-content form .form-group textarea:disabled,
+body div#main-content form .form-group select:disabled {
+  background-color: #f0f3f6;
+  color: #8c959f;
+  cursor: not-allowed;
 }
-body div#main-content .create-post-form .form-group textarea {
+body div#main-content form .form-group input[type=text]::placeholder,
+body div#main-content form .form-group input[type=email]::placeholder,
+body div#main-content form .form-group input[type=password]::placeholder,
+body div#main-content form .form-group input[type=number]::placeholder,
+body div#main-content form .form-group input[type=url]::placeholder,
+body div#main-content form .form-group input[type=tel]::placeholder,
+body div#main-content form .form-group input[type=search]::placeholder,
+body div#main-content form .form-group input[type=date]::placeholder,
+body div#main-content form .form-group input[type=time]::placeholder,
+body div#main-content form .form-group input[type=datetime-local]::placeholder,
+body div#main-content form .form-group textarea::placeholder,
+body div#main-content form .form-group select::placeholder {
+  color: #8c959f;
+  opacity: 0.8;
+}
+body div#main-content form .form-group textarea {
   resize: vertical;
-  min-height: 150px;
-  font-family: inherit;
+  min-height: 120px;
+  font-family: "SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", monospace;
+  line-height: 1.5;
 }
-body div#main-content .create-post-form .form-actions {
+body div#main-content form .form-group select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23656d76' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+  padding-right: 2.5rem;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+body div#main-content form .form-group input[type=checkbox],
+body div#main-content form .form-group input[type=radio] {
+  width: auto;
+  margin-right: 0.5rem;
+  margin-bottom: 0;
+}
+body div#main-content form .form-group .form-help {
+  font-size: 0.85rem;
+  color: #8c959f;
+  margin-top: 0.375rem;
+  line-height: 1.4;
+}
+body div#main-content form .form-group.error input, body div#main-content form .form-group.error textarea, body div#main-content form .form-group.error select {
+  border-color: #cf222e;
+}
+body div#main-content form .form-group.error input:focus, body div#main-content form .form-group.error textarea:focus, body div#main-content form .form-group.error select:focus {
+  border-color: #cf222e;
+  box-shadow: 0 0 0 2px rgba(207, 34, 46, 0.1);
+}
+body div#main-content form .form-group.error .form-help {
+  color: #cf222e;
+}
+body div#main-content form .form-group.success input, body div#main-content form .form-group.success textarea, body div#main-content form .form-group.success select {
+  border-color: #1a7f37;
+}
+body div#main-content form .form-group.success input:focus, body div#main-content form .form-group.success textarea:focus, body div#main-content form .form-group.success select:focus {
+  border-color: #1a7f37;
+  box-shadow: 0 0 0 2px rgba(26, 127, 55, 0.1);
+}
+body div#main-content form .form-actions {
   margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e1e4e8;
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
-body div#main-content .create-post-form .form-actions .btn {
-  padding: 0.75rem 1.5rem;
-  border: 1px solid #dcc1a3;
+body div#main-content form .form-actions .btn {
+  padding: 0.6rem 1.25rem;
+  border: 1px solid #d1d9e0;
   border-radius: 4px;
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
-  background-color: white;
-  color: #423d38;
+  background-color: #ffffff;
+  color: #24292f;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease-in-out;
+  min-width: 80px;
 }
-body div#main-content .create-post-form .form-actions .btn.btn-primary {
-  background-color: #2b7fff;
+body div#main-content form .form-actions .btn:hover {
+  background-color: #f6f8fa;
+  border-color: #f24834;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+body div#main-content form .form-actions .btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+body div#main-content form .form-actions .btn.btn-primary {
+  background-color: #0969da;
   color: white;
-  border-color: #2b7fff;
+  border-color: #0969da;
 }
-body div#main-content .create-post-form .form-actions .btn.btn-primary:hover {
-  background-color: rgb(0, 97.8679245283, 247);
-  border-color: rgb(0, 97.8679245283, 247);
+body div#main-content form .form-actions .btn.btn-primary:hover {
+  background-color: #084896;
+  border-color: #084896;
 }
-body div#main-content .create-post-form .form-actions .btn:hover:not(.btn-primary) {
-  background-color: #e7cfb5;
-  border-color: #59322f;
+body div#main-content form .form-actions .btn.btn-secondary {
+  background-color: #f6f8fa;
+  color: #656d76;
+  border-color: #d1d9e0;
+}
+body div#main-content form .form-actions .btn.btn-secondary:hover {
+  background-color: #f0f3f6;
+  color: #24292f;
+}
+body div#main-content form .form-actions .btn.btn-danger {
+  background-color: #cf222e;
+  color: white;
+  border-color: #cf222e;
+}
+body div#main-content form .form-actions .btn.btn-danger:hover {
+  background-color: rgb(163.1950207469, 26.8049792531, 36.265560166);
+  border-color: rgb(163.1950207469, 26.8049792531, 36.265560166);
+}
+body div#main-content form .form-actions .btn:disabled {
+  background-color: #f0f3f6;
+  color: #8c959f;
+  border-color: #e1e4e8;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+body div#main-content form .form-actions .btn:disabled:hover {
+  background-color: #f0f3f6;
+  border-color: #e1e4e8;
+  transform: none;
+  box-shadow: none;
+}
+body div#main-content form fieldset {
+  border: 1px solid #d1d9e0;
+  border-radius: 4px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+body div#main-content form fieldset legend {
+  font-weight: 600;
+  color: #24292f;
+  padding: 0 0.5rem;
+  font-size: 0.95rem;
+}
+body div#main-content form .form-message {
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+body div#main-content form .form-message.success {
+  background-color: rgba(26, 127, 55, 0.1);
+  color: #1a7f37;
+  border: 1px solid rgba(26, 127, 55, 0.2);
+}
+body div#main-content form .form-message.error {
+  background-color: rgba(207, 34, 46, 0.1);
+  color: #cf222e;
+  border: 1px solid rgba(207, 34, 46, 0.2);
+}
+body div#main-content form .form-message.warning {
+  background-color: rgba(209, 36, 47, 0.1);
+  color: #d1242f;
+  border: 1px solid rgba(209, 36, 47, 0.2);
+}
+body div#main-content form .form-message.info {
+  background-color: rgba(9, 105, 218, 0.1);
+  color: #0969da;
+  border: 1px solid rgba(9, 105, 218, 0.2);
 }

@@ -65,50 +65,158 @@ body {
         border-radius: 8px;
         margin: 1rem auto;
         max-width: 800px;
+        padding: 2rem;
     }
     div#main-content,div#header{
         background-color: $_dun;
         border: $_bistre 1.5px solid;
     }
     
-    // Simple form theming
+    // Enhanced form theming for vanilla simplistic look
     .form-container {
-        .create-post-form {
+        h1, h2, h3, h4, h5, h6 {
+            color: $_caput-mortuum;
+            margin-bottom: 1.5rem;
+        }
+        
+        form {
             .form-group {
                 input[type="text"],
-                textarea {
+                input[type="email"],
+                input[type="password"],
+                input[type="number"],
+                input[type="url"],
+                input[type="tel"],
+                input[type="search"],
+                input[type="date"],
+                input[type="time"],
+                input[type="datetime-local"],
+                textarea,
+                select {
                     background-color: $_white;
                     border-color: $_dun-2;
+                    color: $_black-olive;
                     
                     &:focus {
                         border-color: $_azure;
+                        box-shadow: 0 0 0 2px rgba(43, 127, 255, 0.15);
+                    }
+                    
+                    &::placeholder {
+                        color: $_caput-mortuum;
+                        opacity: 0.6;
                     }
                 }
                 
                 label {
                     color: $_caput-mortuum;
+                    font-weight: 600;
                 }
                 
                 .form-help {
                     color: $_caput-mortuum;
                     opacity: 0.7;
                 }
-            }
-            
-            .form-actions {
-                .btn.btn-primary {
-                    background-color: $_azure;
-                    border-color: $_azure;
+                
+                &.error {
+                    input, textarea, select {
+                        border-color: $_cinnabar;
+                        
+                        &:focus {
+                            border-color: $_cinnabar;
+                            box-shadow: 0 0 0 2px rgba(242, 72, 52, 0.15);
+                        }
+                    }
                     
-                    &:hover {
-                        background-color: darken($_azure, 10%);
+                    .form-help {
+                        color: $_cinnabar;
+                        opacity: 1;
                     }
                 }
             }
-        }
-        
-        h1 {
-            color: $_caput-mortuum;
+            
+            .form-actions {
+                border-top-color: $_dun-2;
+                
+                .btn {
+                    background-color: $_white;
+                    border-color: $_dun-2;
+                    color: $_caput-mortuum;
+                    
+                    &:hover {
+                        background-color: $_dun-2;
+                        border-color: $_caput-mortuum;
+                        box-shadow: 0 2px 4px rgba(66, 61, 56, 0.1);
+                    }
+                    
+                    &.btn-primary {
+                        background-color: $_azure;
+                        border-color: $_azure;
+                        color: $_white;
+                        
+                        &:hover {
+                            background-color: darken($_azure, 10%);
+                            border-color: darken($_azure, 10%);
+                        }
+                    }
+                    
+                    &.btn-secondary {
+                        background-color: $_dun-2;
+                        border-color: $_caput-mortuum;
+                        color: $_caput-mortuum;
+                        
+                        &:hover {
+                            background-color: darken($_dun-2, 5%);
+                        }
+                    }
+                    
+                    &.btn-danger {
+                        background-color: $_cinnabar;
+                        border-color: $_cinnabar;
+                        color: $_white;
+                        
+                        &:hover {
+                            background-color: darken($_cinnabar, 10%);
+                        }
+                    }
+                }
+            }
+            
+            fieldset {
+                border-color: $_dun-2;
+                background-color: rgba(231, 207, 181, 0.3);
+                
+                legend {
+                    color: $_caput-mortuum;
+                    background-color: $_dun;
+                }
+            }
+            
+            .form-message {
+                &.success {
+                    background-color: rgba(43, 127, 255, 0.1);
+                    color: $_azure;
+                    border-color: rgba(43, 127, 255, 0.3);
+                }
+                
+                &.error {
+                    background-color: rgba(242, 72, 52, 0.1);
+                    color: $_cinnabar;
+                    border-color: rgba(242, 72, 52, 0.3);
+                }
+                
+                &.warning {
+                    background-color: rgba(220, 193, 163, 0.3);
+                    color: $_caput-mortuum;
+                    border-color: $_dun-2;
+                }
+                
+                &.info {
+                    background-color: rgba(43, 127, 255, 0.1);
+                    color: $_azure;
+                    border-color: rgba(43, 127, 255, 0.3);
+                }
+            }
         }
     }
 }
