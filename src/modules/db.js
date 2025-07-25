@@ -36,12 +36,60 @@ const _db = new class{
                 display_name TEXT UNIQUE,
                 account_status TEXT DEFAULT NULL
             );
+            CREATE TABLE IF NOT EXISTS applications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE,
+                password TEXT default NULL,
+                email TEXT default NULL,
+                reason TEXT default NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                permission INTEGER DEFAULT 0
+            );
             INSERT OR IGNORE INTO users (username,password,display_name,role) VALUES ('admin','${hash('admin')}','Site Administrator', 100);
         `;
         return new Promise((resolve, reject) => {
             this.db.exec(sql, err => err ? reject(err) : resolve());
         });
     }
+    applications = new class{
+        constructor(){
+            this.db = db;
+        }
+        async create(username, password, email, reason){
+            password = hash(password);
+            return new Promise((res, rej) => {
+                this.db.prepare('INSERT INTO applications (username, password, email, reason) VALUES (?, ?, ?, ?)').run(username, password, email, reason, function(err){
+                    if(err) return rej(err);
+                    res(this.lastID);
+                });
+            });
+        }
+        async getById(id){
+            return new Promise((res, rej) => {
+                this.db.prepare('SELECT * FROM applications WHERE id = ?').get(id, (err, row) => {
+                    if(err) return rej(err);
+                    if(!row) return rej(new Error('Application not found'));
+                    res(row);
+                });
+            });
+        }
+        async get(offset = 0, limit = 10){
+            return new Promise((res, rej) => {
+                this.db.prepare('SELECT * FROM applications ORDER BY created_at LIMIT ? OFFSET ?').all(limit, offset, (err, rows) => {
+                    if(err) return rej(err);
+                    res(rows);
+                });
+            });
+        }
+        async getAll(){
+            return new Promise((res, rej) => {
+                this.db.prepare('SELECT * FROM applications ORDER BY created_at DESC').all((err, rows) => {
+                    if(err) return rej(err);
+                    res(rows);
+                });
+            });
+        }
+    }();
     pages = new class{
         constructor(){
             this.db = db;

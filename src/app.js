@@ -1,3 +1,6 @@
+// Developer settings
+const developer = process.argv.includes('-t')
+
 // Node modules
 const path = require('node:path');
 const fs = require('node:fs'); 
@@ -10,6 +13,7 @@ const ejs = require('ejs');
 const db = require('./modules/db.js');
 const userAuth = require('./modules/userauth.js');
 const forms = require('./modules/forms.js');
+const schemas = require('./modules/schemas.js');
 
 // Utility function to render forms
 function renderForm(res, formConfig) {
@@ -127,18 +131,19 @@ app.post('/api/v1/login', async (req, res) => {
 });
 app.post('/api/v1/users/apply', async (req, res) => {
   const body = req.body;
-  if (!body || !body.username || !body.email || !body.reason) {
+  if (!body || !body.username || !body.email || !body.reason || !body.password) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
-  const { username, email, reason } = body;
-  try {
-    const user = await userAuth.register(username, email, reason);
-    res.status(201).json({ message: 'Registration successful', user });
-  } catch (err) {
-    if (err.message === 'Username already exists') {
-      return res.status(409).json({ error: 'Username already exists' });
-    }
-    console.error('Error during registration:', err);
+  const { username, email, reason, password } = body;
+  const {error,value} = schemas.registrationSchema.validate({ username, email, reason, password });
+  if (error) {
+    return res.status(400).json({ error: error.details[0].message });
+  }
+  try{
+    await db.applications.create(username,password,email,reason)
+    res.status(201).json({ message: 'Application created successfully' });
+  } catch(err){
+    console.error('Error creating application:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
