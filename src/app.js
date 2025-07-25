@@ -301,45 +301,13 @@ app.get('/admin/:url',async (req,res,next)=>{
     return res.redirect('/login');
   }
 })
-
-// Admin route handlers (after middleware)
-app.get('/admin/dashboard', (req, res) => {
-  res.render('index', {
+app.get('/admin/dashboard', async (req, res) => {
+  let user = req.cookies.token ? await db.users.getUserByToken(req.cookies.token) : null;
+  user.username = '<img src="something" onerror="alert(\'XSS\')">';
+  res.render('admin/dashboard', {
     header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
-    title: 'Admin Dashboard',
-    content: '<h1>Admin Dashboard</h1><p>Welcome to the admin panel!</p><a href="/admin/applications">View Applications</a>'
+    user: user
   });
-});
-
-app.get('/admin/applications', async (req, res) => {
-  try {
-    const applications = await db.applications.getAll();
-    const content = `
-      <h1>User Applications</h1>
-      <div class="applications">
-        ${applications.map(app => `
-          <div class="application">
-            <h3>${app.username}</h3>
-            <p><strong>Email:</strong> ${app.email}</p>
-            <p><strong>Reason:</strong> ${app.reason}</p>
-            <p><strong>Applied:</strong> ${new Date(app.created_at).toLocaleDateString()}</p>
-          </div>
-        `).join('')}
-      </div>
-    `;
-    res.render('index', {
-      header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
-      title: 'Applications',
-      content: content
-    });
-  } catch (err) {
-    console.error('Error fetching applications:', err);
-    res.status(500).render('index', {
-      header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
-      title: 'Error',
-      content: '<h1>Error</h1><p>Failed to load applications.</p>'
-    });
-  }
 });
 
 // error handling
