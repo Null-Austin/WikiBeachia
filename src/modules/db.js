@@ -194,6 +194,15 @@ const _db = new class{
                 });
             });
         }
+        async getUserByToken(token){
+            return new Promise((res, rej) => {
+                this.db.prepare('SELECT * FROM users WHERE token = ?').get(token, (err, row) => {
+                    if(err) return rej(err);
+                    if(!row) return rej(new Error('User not found'));
+                    res(row);
+                });
+            });
+        }
     };
 }()
 module.exports = _db;

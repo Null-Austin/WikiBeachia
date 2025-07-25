@@ -9,6 +9,7 @@ const fs = require('node:fs');
 const express = require('express');
 const ejs = require('ejs');
 const colors = require('colors/safe');
+const cookieParser = require('cookie-parser');
 
 // Local modules
 const db = require('./modules/db.js');
@@ -43,6 +44,7 @@ const port = process.env.PORT || 3000;
 app.engine('html', ejs.renderFile);
 app.set('view engine', 'html');
 app.set('views', path.join(__dirname, 'pages'));
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -127,7 +129,18 @@ app.post('/api/v1/login', async (req, res) => {
   const { username, password } = body;
   try {
     const user = await userAuth.login(username, password);
-    res.send(user);
+    
+    // Set the token as an httpOnly cookie
+    res.cookie('token', user.token, {
+      httpOnly: true,  // Prevents XSS attacks
+      secure: false,   // Set to true in production with HTTPS
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: 'lax'  // CSRF protection
+    });
+    
+    // Remove token from response for security
+    const { token, ...userWithoutToken } = user;
+    res.json({ message: 'Login successful', user: userWithoutToken });
   } catch (err) {
     if (err.message === 'Invalid username or password') {
       return res.status(401).json({ error: 'Invalid username or password' });
@@ -156,11 +169,25 @@ app.post('/api/v1/users/apply', async (req, res) => {
 });
 
 // wiki content creation pages
-app.get('/wikian/:url',(req,res,next)=>{
+app.get('/wikian/:url',async (req,res,next)=>{
   if (developer){
     return next();
   }
-  return res.redirect('/login')
+  
+  let token = req.cookies.token;
+  if (!token) {
+    return res.redirect('/login');
+  }
+  
+  try {
+    const user = await db.users.getUserByToken(token);
+    if (user.role < 10) {
+      return res.redirect('/login');
+    }
+    return next();
+  } catch (err) {
+    return res.redirect('/login');
+  }
 })
 app.get('/wikian/create-post',(req,res)=>{
   const formConfig = forms.getFormConfig('create-post');
@@ -171,11 +198,25 @@ app.get('/wikian/create-post',(req,res)=>{
 })
 
 // Admin pages
-app.get('/admin/:url',(req,res,next)=>{
+app.get('/admin/:url',async (req,res,next)=>{
   if (developer){
     return next();
   }
-  return res.redirect('/login')
+  
+  let token = req.cookies.token;
+  if (!token) {
+    return res.redirect('/login');
+  }
+  
+  try {
+    const user = await db.users.getUserByToken(token);
+    if (user.role < 100) {
+      return res.redirect('/login');
+    }
+    return next();
+  } catch (err) {
+    return res.redirect('/login');
+  }
 })
 
 // error handling
