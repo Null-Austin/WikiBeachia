@@ -46,6 +46,16 @@ const _db = new class{
                 permission INTEGER DEFAULT 0
             );
             INSERT OR IGNORE INTO users (username,password,display_name,role) VALUES ('admin','${hash('admin')}','Site Administrator', 100);
+
+
+
+            CREATE TABLE IF NOT EXISTS wiki_variables (
+                name TEXT PRIMARY KEY UNIQUE NOT NULL,
+                value TEXT DEFAULT NULL,
+                description TEXT DEFAULT NULL
+            );
+            INSERT OR IGNORE INTO wiki_variables (name, value, description) VALUES
+                ('site_name', 'WikiBeachia', 'The name of the wiki');
         `;
         return new Promise((resolve, reject) => {
             this.db.exec(sql, err => err ? reject(err) : resolve());
@@ -204,5 +214,30 @@ const _db = new class{
             });
         }
     };
+    settings = new class{
+        constructor(){
+            this.db = db;
+        }
+        getSettings(){
+            return new Promise((res, rej) => {
+                this.db.prepare('SELECT * FROM wiki_variables').all((err, rows) => {
+                    if(err) return rej(err);
+                    const settings = {};
+                    rows.forEach(row => {
+                        settings[row.name] = row.value;
+                    });
+                    res(settings);
+                });
+            });
+        }
+        modifySetting(name,value){
+            return new Promise((res, rej) => {
+                this.db.prepare('INSERT INTO wiki_variables (name, value) VALUES (?, ?) ON CONFLICT(name) DO UPDATE SET value = ?').run(name, value, value, function(err){
+                    if(err) return rej(err);
+                    res(this.changes);
+                });
+            });
+        }
+    }
 }()
 module.exports = _db;

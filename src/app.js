@@ -17,7 +17,7 @@ const userAuth = require('./modules/userauth.js');
 const forms = require('./modules/forms.js');
 const schemas = require('./modules/schemas.js');
 
-// check developer mode
+// Simple pre run checks
 if (developer){
   console.log(colors.bgBlack(
     colors.red(
@@ -27,12 +27,22 @@ if (developer){
     ))
   );
 }
+let settings = {};
+async function loadSettings() {
+  settings = await db.settings.getSettings();
+}
+loadSettings().catch(err=>{
+  if (err){
+    console.error(colors.red('Error loading settings...'), err);
+  }
+})
 
 // Utility function to render forms
 function renderForm(res, formConfig) {
   return res.render('form', {
     ...formConfig,
-    header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8')
+    header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
+    wiki:settings
   });
 }
 
@@ -51,7 +61,8 @@ app.use(express.urlencoded({ extended: true }));
 // static end points
 app.get('/', (req, res) => {
   res.render('index',{
-    'header':fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8')
+    'header':fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
+    wiki:settings
   });
 });
 app.get('/wiki/', (req, res) => {
@@ -87,7 +98,8 @@ app.get('/wiki/:name', async (req, res) => {
     res.render('wiki',{
       'header':fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
       'content':page.content,
-      'title': page.display_name || page.name
+      'title': page.display_name || page.name,
+      wiki:settings
     });
   } catch (error) {
     return res.status(404).redirect('/wiki/404')
@@ -260,7 +272,8 @@ app.get('/wikian/dashboard', async (req, res) => {
   let user = req.cookies.token ? await db.users.getUserByToken(req.cookies.token) : null;
   res.render('wikian/dashboard', {
     header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
-    user: user
+    user: user,
+    wiki:settings
   });
 });
 app.get('/wikian/create-page',(req,res)=>{
@@ -312,7 +325,8 @@ app.get('/admin/dashboard', async (req, res) => {
   let user = req.cookies.token ? await db.users.getUserByToken(req.cookies.token) : null;
   res.render('admin/dashboard', {
     header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
-    user: user
+    user: user,
+    wiki:settings
   });
 });
 
