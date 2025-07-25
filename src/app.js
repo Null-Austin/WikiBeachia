@@ -8,7 +8,7 @@ const ejs = require('ejs');
 
 // Local modules
 const db = require('./modules/db.js');
-const { url } = require('node:inspector');
+const userAuth = require('./modules/userauth.js');
 
 // backend
 const app = express();
@@ -76,6 +76,27 @@ app.post('/api/v1/create-page', async (req, res) => {
       console.error('Error creating page:', error);
       res.status(500).json({ error: 'Internal server error' });
     });
+});
+app.post('/api/v1/login', async (req, res) => {
+  const body = req.body;
+  if (!body || !body.username || !body.password) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+  const { username, password } = body;
+  try {
+    let user = await userAuth.getUserByUsername(username);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    if (user.password !== userAuth.hash(password)) {
+      return res.status(401).json({ error: 'Invalid password' });
+    }
+    user.token = (await userAuth.userToken(user.id,userAuth.randomBytes())).token;
+    res.send(user);
+  } catch (err) {
+    console.error('Error fetching user:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // error handling
