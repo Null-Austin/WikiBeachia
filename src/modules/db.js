@@ -124,6 +124,14 @@ const _db = new class{
                 });
             });
         }
+        async getAllPages(){
+            return new Promise((res,rej)=>{
+                this.db.prepare('SELECT name, display_name, created_at, last_modified FROM pages WHERE name != "404" ORDER BY display_name').all((err,rows)=>{
+                    if(err) return rej(err);
+                    res(rows);
+                })
+            })
+        }
     }();
     users = new class{
         constructor(){

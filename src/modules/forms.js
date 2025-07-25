@@ -1,15 +1,15 @@
 // Form configurations for the flexible form system
 const formConfigs = {
   'create-post': {
-    title: 'Create New Post',
-    formTitle: 'Create New Post',
+    title: 'Create New Wiki Page',
+    formTitle: 'Create New Wiki Page',
     method: 'POST',
     action: '/api/v1/create-page',
-    submitText: 'Create Post',
+    submitText: 'Create Page',
     fields: [
       {
         name: 'display_name',
-        label: 'Display Title',
+        label: 'Page Title',
         type: 'text',
         placeholder: 'Title',
         required: true

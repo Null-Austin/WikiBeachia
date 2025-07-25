@@ -52,8 +52,8 @@ app.get('/', (req, res) => {
     'header':fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8')
   });
 });
-app.get('/blog',(req,res)=>{
-  res.redirect('/')
+app.get('/wiki/', (req, res) => {
+  res.redirect('/');
 });
 app.get('/login',(req,res)=>{
   const formConfig = forms.getFormConfig('login');
@@ -79,16 +79,16 @@ if (developer){
 }
 
 // dynamic endpoints
-app.get('/blog/:name', async (req, res) => {
+app.get('/wiki/:name', async (req, res) => {
   try {
     let page = await db.pages.getPage(req.params.name)
-    res.render('blog',{
+    res.render('wiki',{
       'header':fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
       'content':page.content,
       'title': page.display_name || page.name
     });
   } catch (error) {
-    return res.status(404).redirect('/blog/404')
+    return res.status(404).redirect('/wiki/404')
   }
 });
 
@@ -112,7 +112,7 @@ app.post('/api/v1/create-page', async (req, res) => {
   let name = display_name.toLowerCase().replace(/\s+/g, '_');
   db.pages.createPage(name, display_name, content)
     .then(() => {
-      res.status(201).json({ message: 'Page created successfully...', url: `/blog/${name}` });
+      res.status(201).json({ message: 'Page created successfully...', url: `/wiki/${name}` });
     })
     .catch((error) => {
       console.error('Error creating page:', error);
@@ -155,11 +155,11 @@ app.post('/api/v1/users/apply', async (req, res) => {
   }
 });
 
-// wikipedian posting pages
+// wiki content creation pages
 app.get('/wiki/create-post',(req,res)=>{
   const formConfig = forms.getFormConfig('create-post');
   if (!formConfig) {
-    return res.status(404).redirect('/blog/404');
+    return res.status(404).redirect('/wiki/404');
   }
   renderForm(res, formConfig);
 })
@@ -168,7 +168,7 @@ app.get('/wiki/create-post',(req,res)=>{
 
 // error handling
 app.use((req,res,next)=>{
-  res.status(404).redirect('/blog/404')
+  res.status(404).redirect('/wiki/404')
 })
 
 // Initialize database and start server
