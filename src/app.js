@@ -256,6 +256,13 @@ app.get('/wikian/:url',async (req,res,next)=>{
     return res.redirect('/login');
   }
 })
+app.get('/wikian/dashboard', async (req, res) => {
+  let user = req.cookies.token ? await db.users.getUserByToken(req.cookies.token) : null;
+  res.render('admin/dashboard', {
+    header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
+    user: user
+  });
+});
 app.get('/wikian/create-post',(req,res)=>{
   const formConfig = forms.getFormConfig('create-post');
   if (!formConfig) {
