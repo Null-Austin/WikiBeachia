@@ -125,6 +125,23 @@ app.post('/api/v1/login', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+app.post('/api/v1/users/apply', async (req, res) => {
+  const body = req.body;
+  if (!body || !body.username || !body.email || !body.reason) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+  const { username, email, reason } = body;
+  try {
+    const user = await userAuth.register(username, email, reason);
+    res.status(201).json({ message: 'Registration successful', user });
+  } catch (err) {
+    if (err.message === 'Username already exists') {
+      return res.status(409).json({ error: 'Username already exists' });
+    }
+    console.error('Error during registration:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 // error handling
 app.use((req,res,next)=>{
