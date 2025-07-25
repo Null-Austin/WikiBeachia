@@ -399,6 +399,14 @@ app.get('/admin/dashboard', async (req, res) => {
     wiki:settings
   });
 });
+app.get('/admin/users/',async (req,res)=>{
+  let users = await db.users.getAll();
+  res.render('admin/users', {
+    header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
+    users: users,
+    wiki:settings
+  });
+})
 app.get('/admin/applications',async (req,res)=>{
   let offset = Number(req.query.offset) || 0;
   let limit = Number(req.query.limit) || 10;

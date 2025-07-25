@@ -306,35 +306,30 @@ body div#main-content ol {
   list-style-type: decimal;
 }
 body div#main-content table {
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   margin: 1rem 0;
   width: 100%;
-  border: 1px solid #d1d9e0;
+  border: 1px solid #24292f;
   border-radius: 6px;
   overflow: hidden;
 }
 body div#main-content table th, body div#main-content table td {
   padding: 0.75rem 1rem;
   text-align: left;
-  border-right: 1px solid #d1d9e0;
+  border-right: 1px solid #24292f;
+  border-bottom: 1px solid #24292f;
 }
 body div#main-content table th:last-child, body div#main-content table td:last-child {
   border-right: none;
 }
 body div#main-content table th {
-  background-color: #f6f8fa;
   font-weight: 600;
   color: #24292f;
-  border-bottom: 2px solid #d1d9e0;
+  border-bottom: 2px solid #24292f;
 }
-body div#main-content table tr:nth-child(even) {
-  background-color: #ffffff;
-}
-body div#main-content table tr:nth-child(odd) {
-  background-color: #f6f8fa;
-}
-body div#main-content table tr:not(:last-child) td {
-  border-bottom: 1px solid #d1d9e0;
+body div#main-content table tr:last-child td {
+  border-bottom: none;
 }
 body div#main-content hr {
   height: 1px;

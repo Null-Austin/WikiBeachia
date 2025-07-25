@@ -132,11 +132,11 @@ const _db = new class{
                 });
             });
         }
-        async updatePage(name, display_name, content){
+        async updatePage(id, name, display_name, content){
             if (!display_name){display_name = name;}
-            name = String(name).toLowerCase();
+            name = String(name).toLowerCase();  
             return new Promise((res,rej)=>{
-                this.db.prepare('UPDATE pages SET display_name = ?, content = ?, last_modified = CURRENT_TIMESTAMP WHERE name = ?').run(display_name, content, name, function(err){
+                this.db.prepare('UPDATE pages SET display_name = ?, content = ?, last_modified = CURRENT_TIMESTAMP WHERE id = ?').run(display_name, content, id, function(err){
                     if(err) return rej(err);
                     if(this.changes === 0) return rej(new Error('Page not found'));
                     res(this.changes);
@@ -155,6 +155,42 @@ const _db = new class{
     users = new class{
         constructor(){
             this.db = db;
+        }
+        async modifyStatus(userid, account_status){
+            return new Promise((res, rej) => {
+                this.db.prepare('UPDATE users SET account_status = ? WHERE id = ?').run(account_status, userid, function(err){
+                    if(err) return rej(err);
+                    if(this.changes === 0) return rej(new Error('User not found'));
+                    res(this.changes);
+                });
+            });
+        }
+        async getAll(){
+            return new Promise((res, rej) => {
+                this.db.prepare('SELECT id, username, display_name, role, created_at, account_status FROM users ORDER BY created_at DESC').all((err, rows) => {
+                    if(err) return rej(err);
+                    res(rows);
+                });
+            });
+        }
+        async changePassword(userid, new_password){
+            new_password = hash(new_password);
+            return new Promise((res, rej) => {
+                this.db.prepare('UPDATE users SET password = ? WHERE id = ?').run(new_password, userid, function(err){
+                    if(err) return rej(err);
+                    if(this.changes === 0) return rej(new Error('User not found'));
+                    res(this.changes);
+                });
+            });
+        }
+        async modifyNameDisplayName(userid,name,display_name){
+            return new Promise((res, rej) => {
+                this.db.prepare('UPDATE users SET username = ?, display_name = ? WHERE id = ?').run(name, display_name || null, userid, function(err){
+                    if(err) return rej(err);
+                    if(this.changes === 0) return rej(new Error('User not found'));
+                    res(this.changes);
+                });
+            });
         }
         async create(username,password,display_name=false,role=1){
             return new Promise((res,rej)=>{

@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="/css/index.css">
     <link rel="stylesheet" href="/css/theme-regular.css">
     <link rel="stylesheet" href="/css/md.css">
-    <script src="/js/notifications.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Tomorrow:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
         #main-content > .application > .reason {
@@ -45,8 +44,68 @@
         #main-content > .application > .info{
             font-size: 12px;
         }
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 6px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            max-width: 400px;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+        }
+        .notification.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .notification.success {
+            background-color: #10b981;
+            border-left: 4px solid #059669;
+        }
+        .notification.error {
+            background-color: #ef4444;
+            border-left: 4px solid #dc2626;
+        }
+        .notification.warning {
+            background-color: #f59e0b;
+            border-left: 4px solid #d97706;
+        }
     </style>
     <script>
+        // Notification system
+        function showNotification(message, type = 'success') {
+            // Remove existing notifications
+            const existingNotifications = document.querySelectorAll('.notification');
+            existingNotifications.forEach(notif => notif.remove());
+            
+            // Create new notification
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            
+            // Add to page
+            document.body.appendChild(notification);
+            
+            // Show notification
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+            
+            // Hide and remove notification
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 300);
+            }, 4000);
+        }
+
         async function register(id){
             try{
                 const response = await fetch('/api/v1/users/register',{
@@ -60,15 +119,15 @@
                 });
                 
                 if (response.ok) {
-                    notifications.success('User registered successfully!');
+                    showNotification('User registered successfully!', 'success');
                     setTimeout(() => location.reload(), 1500); // Refresh the page to update the applications list
                 } else {
                     const errorData = await response.json().catch(() => ({ error: 'Unknown error occurred' }));
-                    notifications.error('Failed to register user: ' + (errorData.error || 'Unknown error'));
+                    showNotification('Failed to register user: ' + (errorData.error || 'Unknown error'), 'error');
                 }
             } catch(err){
                 console.error(err);
-                notifications.error('Network error occurred while registering user');
+                showNotification('Network error occurred while registering user', 'error');
             }
         }
         async function reject(id){
@@ -84,15 +143,15 @@
                 });
                 
                 if (response.ok) {
-                    notifications.success('Application rejected successfully!');
+                    showNotification('Application rejected successfully!', 'success');
                     setTimeout(() => location.reload(), 1500); // Refresh the page to update the applications list
                 } else {
                     const errorData = await response.json().catch(() => ({ error: 'Unknown error occurred' }));
-                    notifications.error('Failed to reject application: ' + (errorData.error || 'Unknown error'));
+                    showNotification('Failed to reject application: ' + (errorData.error || 'Unknown error'), 'error');
                 }
             } catch(err){
                 console.error(err);
-                notifications.error('Network error occurred while rejecting application');
+                showNotification('Network error occurred while rejecting application', 'error');
             }
         }
     </script>
