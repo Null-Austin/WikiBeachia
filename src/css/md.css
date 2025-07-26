@@ -173,71 +173,71 @@ a:hover {
   color: #084896;
 }
 
-body div#main-content textarea {
+body div#main-content textarea, body #modify-user textarea {
   background-color: #423d38;
   color: white;
   padding-inline: 5px;
   border: 1.1px solid #24292f;
   border-radius: 5px;
 }
-body div#main-content h1, body div#main-content h2, body div#main-content h3, body div#main-content h4, body div#main-content h5, body div#main-content h6 {
+body div#main-content h1, body div#main-content h2, body div#main-content h3, body div#main-content h4, body div#main-content h5, body div#main-content h6, body #modify-user h1, body #modify-user h2, body #modify-user h3, body #modify-user h4, body #modify-user h5, body #modify-user h6 {
   margin-top: 1.5em;
   margin-bottom: 0.5em;
   font-weight: 600;
   line-height: 1.25;
   color: #24292f;
 }
-body div#main-content h1:first-child, body div#main-content h2:first-child, body div#main-content h3:first-child, body div#main-content h4:first-child, body div#main-content h5:first-child, body div#main-content h6:first-child {
+body div#main-content h1:first-child, body div#main-content h2:first-child, body div#main-content h3:first-child, body div#main-content h4:first-child, body div#main-content h5:first-child, body div#main-content h6:first-child, body #modify-user h1:first-child, body #modify-user h2:first-child, body #modify-user h3:first-child, body #modify-user h4:first-child, body #modify-user h5:first-child, body #modify-user h6:first-child {
   margin-top: 0;
 }
-body div#main-content h1 {
+body div#main-content h1, body #modify-user h1 {
   font-size: 2.25rem;
   border-bottom: 1px solid #f24834;
   padding-bottom: 0.5rem;
   margin-bottom: 1rem;
 }
-body div#main-content h2 {
+body div#main-content h2, body #modify-user h2 {
   font-size: 1.875rem;
   border-bottom: 1px solid #f24834;
   padding-bottom: 0.5rem;
   margin-bottom: 1rem;
 }
-body div#main-content h3 {
+body div#main-content h3, body #modify-user h3 {
   font-size: 1.5rem;
 }
-body div#main-content h4 {
+body div#main-content h4, body #modify-user h4 {
   font-size: 1.25rem;
 }
-body div#main-content h5 {
+body div#main-content h5, body #modify-user h5 {
   font-size: 1.125rem;
 }
-body div#main-content h6 {
+body div#main-content h6, body #modify-user h6 {
   font-size: 1rem;
   color: #656d76;
 }
-body div#main-content p {
+body div#main-content p, body #modify-user p {
   margin: 1rem 0;
   color: #24292f;
 }
-body div#main-content strong, body div#main-content b {
+body div#main-content strong, body div#main-content b, body #modify-user strong, body #modify-user b {
   font-weight: 600;
   color: #24292f;
 }
-body div#main-content em, body div#main-content i {
+body div#main-content em, body div#main-content i, body #modify-user em, body #modify-user i {
   font-style: italic;
 }
-body div#main-content a {
+body div#main-content a, body #modify-user a {
   color: #0969da;
   text-decoration: none;
 }
-body div#main-content a:hover {
+body div#main-content a:hover, body #modify-user a:hover {
   color: #0860ca;
   text-decoration: underline;
 }
-body div#main-content a:visited {
+body div#main-content a:visited, body #modify-user a:visited {
   color: #8250df;
 }
-body div#main-content code {
+body div#main-content code, body #modify-user code {
   background-color: #f6f8fa;
   color: #24292f;
   padding: 0.2em 0.4em;
@@ -246,7 +246,7 @@ body div#main-content code {
   border-radius: 3px;
   font-family: "SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", monospace;
 }
-body div#main-content pre {
+body div#main-content pre, body #modify-user pre {
   background-color: #f6f8fa;
   border: 1px solid #e1e4e8;
   border-radius: 6px;
@@ -254,7 +254,7 @@ body div#main-content pre {
   overflow-x: auto;
   margin: 1rem 0;
 }
-body div#main-content pre code {
+body div#main-content pre code, body #modify-user pre code {
   background: none;
   padding: 0;
   margin: 0;
@@ -263,7 +263,7 @@ body div#main-content pre code {
   font-size: 0.875rem;
   line-height: 1.45;
 }
-body div#main-content blockquote {
+body div#main-content blockquote, body #modify-user blockquote {
   margin: 1rem 0;
   padding: 0 1rem;
   color: #656d76;
@@ -271,41 +271,41 @@ body div#main-content blockquote {
   background-color: #f8f9fa;
   border-radius: 0 3px 3px 0;
 }
-body div#main-content blockquote p {
+body div#main-content blockquote p, body #modify-user blockquote p {
   margin: 0.5rem 0;
 }
-body div#main-content blockquote p:first-child {
+body div#main-content blockquote p:first-child, body #modify-user blockquote p:first-child {
   margin-top: 0;
 }
-body div#main-content blockquote p:last-child {
+body div#main-content blockquote p:last-child, body #modify-user blockquote p:last-child {
   margin-bottom: 0;
 }
-body div#main-content ul, body div#main-content ol {
+body div#main-content ul, body div#main-content ol, body #modify-user ul, body #modify-user ol {
   margin: 1rem 0;
   padding-left: 2rem;
 }
-body div#main-content ul li, body div#main-content ol li {
+body div#main-content ul li, body div#main-content ol li, body #modify-user ul li, body #modify-user ol li {
   margin: 0.25rem 0;
 }
-body div#main-content ul li p, body div#main-content ol li p {
+body div#main-content ul li p, body div#main-content ol li p, body #modify-user ul li p, body #modify-user ol li p {
   margin: 0.5rem 0;
 }
-body div#main-content ul li ul, body div#main-content ul li ol, body div#main-content ol li ul, body div#main-content ol li ol {
+body div#main-content ul li ul, body div#main-content ul li ol, body div#main-content ol li ul, body div#main-content ol li ol, body #modify-user ul li ul, body #modify-user ul li ol, body #modify-user ol li ul, body #modify-user ol li ol {
   margin: 0.5rem 0;
 }
-body div#main-content ul {
+body div#main-content ul, body #modify-user ul {
   list-style-type: disc;
 }
-body div#main-content ul ul {
+body div#main-content ul ul, body #modify-user ul ul {
   list-style-type: circle;
 }
-body div#main-content ul ul ul {
+body div#main-content ul ul ul, body #modify-user ul ul ul {
   list-style-type: square;
 }
-body div#main-content ol {
+body div#main-content ol, body #modify-user ol {
   list-style-type: decimal;
 }
-body div#main-content table {
+body div#main-content table, body #modify-user table {
   border-collapse: separate;
   border-spacing: 0;
   margin: 1rem 0;
@@ -314,97 +314,97 @@ body div#main-content table {
   border-radius: 6px;
   overflow: hidden;
 }
-body div#main-content table th, body div#main-content table td {
+body div#main-content table th, body div#main-content table td, body #modify-user table th, body #modify-user table td {
   padding: 0.75rem 1rem;
   text-align: left;
   border-right: 1px solid #24292f;
   border-bottom: 1px solid #24292f;
 }
-body div#main-content table th:last-child, body div#main-content table td:last-child {
+body div#main-content table th:last-child, body div#main-content table td:last-child, body #modify-user table th:last-child, body #modify-user table td:last-child {
   border-right: none;
 }
-body div#main-content table th {
+body div#main-content table th, body #modify-user table th {
   font-weight: 600;
   color: #24292f;
 }
-body div#main-content table tr:last-child td {
+body div#main-content table tr:last-child td, body #modify-user table tr:last-child td {
   border-bottom: none;
 }
-body div#main-content hr {
+body div#main-content hr, body #modify-user hr {
   height: 1px;
   background-color: #f24834;
   border: none;
   margin: 2rem 0;
 }
-body div#main-content img {
+body div#main-content img, body #modify-user img {
   max-width: 100%;
   height: auto;
   border-radius: 6px;
   margin: 1rem 0;
 }
-body div#main-content input[type=checkbox] {
+body div#main-content input[type=checkbox], body #modify-user input[type=checkbox] {
   margin-right: 0.5rem;
 }
-body div#main-content dl {
+body div#main-content dl, body #modify-user dl {
   margin: 1rem 0;
 }
-body div#main-content dl dt {
+body div#main-content dl dt, body #modify-user dl dt {
   font-weight: 600;
   margin-top: 1rem;
 }
-body div#main-content dl dt:first-child {
+body div#main-content dl dt:first-child, body #modify-user dl dt:first-child {
   margin-top: 0;
 }
-body div#main-content dl dd {
+body div#main-content dl dd, body #modify-user dl dd {
   margin: 0.5rem 0 1rem 2rem;
 }
-body div#main-content del, body div#main-content s {
+body div#main-content del, body div#main-content s, body #modify-user del, body #modify-user s {
   text-decoration: line-through;
   color: #8c959f;
 }
-body div#main-content mark {
+body div#main-content mark, body #modify-user mark {
   background-color: #fff3cd;
   color: #24292f;
   padding: 0.125em 0.25em;
   border-radius: 2px;
 }
-body div#main-content small {
+body div#main-content small, body #modify-user small {
   font-size: 0.875em;
   color: #656d76;
 }
-body div#main-content sub, body div#main-content sup {
+body div#main-content sub, body div#main-content sup, body #modify-user sub, body #modify-user sup {
   font-size: 0.75em;
   line-height: 0;
   position: relative;
   vertical-align: baseline;
 }
-body div#main-content sub {
+body div#main-content sub, body #modify-user sub {
   bottom: -0.25em;
 }
-body div#main-content sup {
+body div#main-content sup, body #modify-user sup {
   top: -0.5em;
 }
-body div#main-content details {
+body div#main-content details, body #modify-user details {
   margin: 1rem 0;
   border: 1px solid #e1e4e8;
   border-radius: 6px;
   padding: 0.5rem;
 }
-body div#main-content details summary {
+body div#main-content details summary, body #modify-user details summary {
   font-weight: 600;
   cursor: pointer;
   padding: 0.5rem;
   margin: -0.5rem;
   border-radius: 6px;
 }
-body div#main-content details summary:hover {
+body div#main-content details summary:hover, body #modify-user details summary:hover {
   background-color: #f6f8fa;
 }
-body div#main-content details[open] summary {
+body div#main-content details[open] summary, body #modify-user details[open] summary {
   border-bottom: 1px solid #e1e4e8;
   margin-bottom: 0.5rem;
 }
-body div#main-content kbd {
+body div#main-content kbd, body #modify-user kbd {
   background-color: #f0f3f6;
   border: 1px solid #d1d9e0;
   border-radius: 3px;
@@ -417,17 +417,17 @@ body div#main-content kbd {
   padding: 0.25em 0.5em;
   white-space: nowrap;
 }
-body div#main-content .form-container h1, body div#main-content .form-container h2, body div#main-content .form-container h3, body div#main-content .form-container h4, body div#main-content .form-container h5, body div#main-content .form-container h6 {
+body div#main-content .form-container h1, body div#main-content .form-container h2, body div#main-content .form-container h3, body div#main-content .form-container h4, body div#main-content .form-container h5, body div#main-content .form-container h6, body #modify-user .form-container h1, body #modify-user .form-container h2, body #modify-user .form-container h3, body #modify-user .form-container h4, body #modify-user .form-container h5, body #modify-user .form-container h6 {
   margin-bottom: 1.5rem;
   color: #24292f;
 }
-body div#main-content .form-container p {
+body div#main-content .form-container p, body #modify-user .form-container p {
   margin-bottom: 1rem;
 }
-body div#main-content form .form-group {
+body div#main-content form .form-group, body #modify-user form .form-group {
   margin-bottom: 1.25rem;
 }
-body div#main-content form .form-group label {
+body div#main-content form .form-group label, body #modify-user form .form-group label {
   display: block;
   font-weight: 600;
   margin-bottom: 0.5rem;
@@ -446,7 +446,18 @@ body div#main-content form .form-group input[type=date],
 body div#main-content form .form-group input[type=time],
 body div#main-content form .form-group input[type=datetime-local],
 body div#main-content form .form-group textarea,
-body div#main-content form .form-group select {
+body div#main-content form .form-group select, body #modify-user form .form-group input[type=text],
+body #modify-user form .form-group input[type=email],
+body #modify-user form .form-group input[type=password],
+body #modify-user form .form-group input[type=number],
+body #modify-user form .form-group input[type=url],
+body #modify-user form .form-group input[type=tel],
+body #modify-user form .form-group input[type=search],
+body #modify-user form .form-group input[type=date],
+body #modify-user form .form-group input[type=time],
+body #modify-user form .form-group input[type=datetime-local],
+body #modify-user form .form-group textarea,
+body #modify-user form .form-group select {
   width: 100%;
   padding: 0.6rem 0.75rem;
   border: 1px solid #d1d9e0;
@@ -469,7 +480,18 @@ body div#main-content form .form-group input[type=date]:focus,
 body div#main-content form .form-group input[type=time]:focus,
 body div#main-content form .form-group input[type=datetime-local]:focus,
 body div#main-content form .form-group textarea:focus,
-body div#main-content form .form-group select:focus {
+body div#main-content form .form-group select:focus, body #modify-user form .form-group input[type=text]:focus,
+body #modify-user form .form-group input[type=email]:focus,
+body #modify-user form .form-group input[type=password]:focus,
+body #modify-user form .form-group input[type=number]:focus,
+body #modify-user form .form-group input[type=url]:focus,
+body #modify-user form .form-group input[type=tel]:focus,
+body #modify-user form .form-group input[type=search]:focus,
+body #modify-user form .form-group input[type=date]:focus,
+body #modify-user form .form-group input[type=time]:focus,
+body #modify-user form .form-group input[type=datetime-local]:focus,
+body #modify-user form .form-group textarea:focus,
+body #modify-user form .form-group select:focus {
   outline: none;
   border-color: #0969da;
   box-shadow: 0 0 0 2px rgba(9, 105, 218, 0.1);
@@ -485,7 +507,18 @@ body div#main-content form .form-group input[type=date]:disabled,
 body div#main-content form .form-group input[type=time]:disabled,
 body div#main-content form .form-group input[type=datetime-local]:disabled,
 body div#main-content form .form-group textarea:disabled,
-body div#main-content form .form-group select:disabled {
+body div#main-content form .form-group select:disabled, body #modify-user form .form-group input[type=text]:disabled,
+body #modify-user form .form-group input[type=email]:disabled,
+body #modify-user form .form-group input[type=password]:disabled,
+body #modify-user form .form-group input[type=number]:disabled,
+body #modify-user form .form-group input[type=url]:disabled,
+body #modify-user form .form-group input[type=tel]:disabled,
+body #modify-user form .form-group input[type=search]:disabled,
+body #modify-user form .form-group input[type=date]:disabled,
+body #modify-user form .form-group input[type=time]:disabled,
+body #modify-user form .form-group input[type=datetime-local]:disabled,
+body #modify-user form .form-group textarea:disabled,
+body #modify-user form .form-group select:disabled {
   background-color: #f0f3f6;
   color: #8c959f;
   cursor: not-allowed;
@@ -501,17 +534,28 @@ body div#main-content form .form-group input[type=date]::placeholder,
 body div#main-content form .form-group input[type=time]::placeholder,
 body div#main-content form .form-group input[type=datetime-local]::placeholder,
 body div#main-content form .form-group textarea::placeholder,
-body div#main-content form .form-group select::placeholder {
+body div#main-content form .form-group select::placeholder, body #modify-user form .form-group input[type=text]::placeholder,
+body #modify-user form .form-group input[type=email]::placeholder,
+body #modify-user form .form-group input[type=password]::placeholder,
+body #modify-user form .form-group input[type=number]::placeholder,
+body #modify-user form .form-group input[type=url]::placeholder,
+body #modify-user form .form-group input[type=tel]::placeholder,
+body #modify-user form .form-group input[type=search]::placeholder,
+body #modify-user form .form-group input[type=date]::placeholder,
+body #modify-user form .form-group input[type=time]::placeholder,
+body #modify-user form .form-group input[type=datetime-local]::placeholder,
+body #modify-user form .form-group textarea::placeholder,
+body #modify-user form .form-group select::placeholder {
   color: #8c959f;
   opacity: 0.8;
 }
-body div#main-content form .form-group textarea {
+body div#main-content form .form-group textarea, body #modify-user form .form-group textarea {
   resize: vertical;
   min-height: 120px;
   font-family: "SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", monospace;
   line-height: 1.5;
 }
-body div#main-content form .form-group select {
+body div#main-content form .form-group select, body #modify-user form .form-group select {
   cursor: pointer;
   background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23656d76' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
   background-repeat: no-repeat;
@@ -523,35 +567,36 @@ body div#main-content form .form-group select {
   appearance: none;
 }
 body div#main-content form .form-group input[type=checkbox],
-body div#main-content form .form-group input[type=radio] {
+body div#main-content form .form-group input[type=radio], body #modify-user form .form-group input[type=checkbox],
+body #modify-user form .form-group input[type=radio] {
   width: auto;
   margin-right: 0.5rem;
   margin-bottom: 0;
 }
-body div#main-content form .form-group .form-help {
+body div#main-content form .form-group .form-help, body #modify-user form .form-group .form-help {
   font-size: 0.85rem;
   color: #8c959f;
   margin-top: 0.375rem;
   line-height: 1.4;
 }
-body div#main-content form .form-group.error input, body div#main-content form .form-group.error textarea, body div#main-content form .form-group.error select {
+body div#main-content form .form-group.error input, body div#main-content form .form-group.error textarea, body div#main-content form .form-group.error select, body #modify-user form .form-group.error input, body #modify-user form .form-group.error textarea, body #modify-user form .form-group.error select {
   border-color: #cf222e;
 }
-body div#main-content form .form-group.error input:focus, body div#main-content form .form-group.error textarea:focus, body div#main-content form .form-group.error select:focus {
+body div#main-content form .form-group.error input:focus, body div#main-content form .form-group.error textarea:focus, body div#main-content form .form-group.error select:focus, body #modify-user form .form-group.error input:focus, body #modify-user form .form-group.error textarea:focus, body #modify-user form .form-group.error select:focus {
   border-color: #cf222e;
   box-shadow: 0 0 0 2px rgba(207, 34, 46, 0.1);
 }
-body div#main-content form .form-group.error .form-help {
+body div#main-content form .form-group.error .form-help, body #modify-user form .form-group.error .form-help {
   color: #cf222e;
 }
-body div#main-content form .form-group.success input, body div#main-content form .form-group.success textarea, body div#main-content form .form-group.success select {
+body div#main-content form .form-group.success input, body div#main-content form .form-group.success textarea, body div#main-content form .form-group.success select, body #modify-user form .form-group.success input, body #modify-user form .form-group.success textarea, body #modify-user form .form-group.success select {
   border-color: #1a7f37;
 }
-body div#main-content form .form-group.success input:focus, body div#main-content form .form-group.success textarea:focus, body div#main-content form .form-group.success select:focus {
+body div#main-content form .form-group.success input:focus, body div#main-content form .form-group.success textarea:focus, body div#main-content form .form-group.success select:focus, body #modify-user form .form-group.success input:focus, body #modify-user form .form-group.success textarea:focus, body #modify-user form .form-group.success select:focus {
   border-color: #1a7f37;
   box-shadow: 0 0 0 2px rgba(26, 127, 55, 0.1);
 }
-body div#main-content form .form-actions {
+body div#main-content form .form-actions, body #modify-user form .form-actions {
   margin-top: 2rem;
   padding-top: 1rem;
   border-top: 1px solid #e1e4e8;
@@ -559,7 +604,7 @@ body div#main-content form .form-actions {
   gap: 0.75rem;
   flex-wrap: wrap;
 }
-body div#main-content form .form-actions .btn {
+body div#main-content form .form-actions .btn, body #modify-user form .form-actions .btn {
   padding: 0.6rem 1.25rem;
   border: 1px solid #d1d9e0;
   border-radius: 4px;
@@ -575,44 +620,44 @@ body div#main-content form .form-actions .btn {
   transition: all 0.2s ease-in-out;
   min-width: 80px;
 }
-body div#main-content form .form-actions .btn:hover {
+body div#main-content form .form-actions .btn:hover, body #modify-user form .form-actions .btn:hover {
   background-color: #f6f8fa;
   border-color: #f24834;
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
-body div#main-content form .form-actions .btn:active {
+body div#main-content form .form-actions .btn:active, body #modify-user form .form-actions .btn:active {
   transform: translateY(0);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
-body div#main-content form .form-actions .btn.btn-primary {
+body div#main-content form .form-actions .btn.btn-primary, body #modify-user form .form-actions .btn.btn-primary {
   background-color: #0969da;
   color: white;
   border-color: #0969da;
 }
-body div#main-content form .form-actions .btn.btn-primary:hover {
+body div#main-content form .form-actions .btn.btn-primary:hover, body #modify-user form .form-actions .btn.btn-primary:hover {
   background-color: #084896;
   border-color: #084896;
 }
-body div#main-content form .form-actions .btn.btn-secondary {
+body div#main-content form .form-actions .btn.btn-secondary, body #modify-user form .form-actions .btn.btn-secondary {
   background-color: #f6f8fa;
   color: #656d76;
   border-color: #d1d9e0;
 }
-body div#main-content form .form-actions .btn.btn-secondary:hover {
+body div#main-content form .form-actions .btn.btn-secondary:hover, body #modify-user form .form-actions .btn.btn-secondary:hover {
   background-color: #f0f3f6;
   color: #24292f;
 }
-body div#main-content form .form-actions .btn.btn-danger {
+body div#main-content form .form-actions .btn.btn-danger, body #modify-user form .form-actions .btn.btn-danger {
   background-color: #cf222e;
   color: white;
   border-color: #cf222e;
 }
-body div#main-content form .form-actions .btn.btn-danger:hover {
+body div#main-content form .form-actions .btn.btn-danger:hover, body #modify-user form .form-actions .btn.btn-danger:hover {
   background-color: rgb(163.1950207469, 26.8049792531, 36.265560166);
   border-color: rgb(163.1950207469, 26.8049792531, 36.265560166);
 }
-body div#main-content form .form-actions .btn:disabled {
+body div#main-content form .form-actions .btn:disabled, body #modify-user form .form-actions .btn:disabled {
   background-color: #f0f3f6;
   color: #8c959f;
   border-color: #e1e4e8;
@@ -620,46 +665,46 @@ body div#main-content form .form-actions .btn:disabled {
   transform: none;
   box-shadow: none;
 }
-body div#main-content form .form-actions .btn:disabled:hover {
+body div#main-content form .form-actions .btn:disabled:hover, body #modify-user form .form-actions .btn:disabled:hover {
   background-color: #f0f3f6;
   border-color: #e1e4e8;
   transform: none;
   box-shadow: none;
 }
-body div#main-content form fieldset {
+body div#main-content form fieldset, body #modify-user form fieldset {
   border: 1px solid #d1d9e0;
   border-radius: 4px;
   padding: 1rem;
   margin-bottom: 1.5rem;
 }
-body div#main-content form fieldset legend {
+body div#main-content form fieldset legend, body #modify-user form fieldset legend {
   font-weight: 600;
   color: #24292f;
   padding: 0 0.5rem;
   font-size: 0.95rem;
 }
-body div#main-content form .form-message {
+body div#main-content form .form-message, body #modify-user form .form-message {
   padding: 0.75rem 1rem;
   border-radius: 4px;
   margin-bottom: 1.5rem;
   font-size: 0.9rem;
 }
-body div#main-content form .form-message.success {
+body div#main-content form .form-message.success, body #modify-user form .form-message.success {
   background-color: rgba(26, 127, 55, 0.1);
   color: #1a7f37;
   border: 1px solid rgba(26, 127, 55, 0.2);
 }
-body div#main-content form .form-message.error {
+body div#main-content form .form-message.error, body #modify-user form .form-message.error {
   background-color: rgba(207, 34, 46, 0.1);
   color: #cf222e;
   border: 1px solid rgba(207, 34, 46, 0.2);
 }
-body div#main-content form .form-message.warning {
+body div#main-content form .form-message.warning, body #modify-user form .form-message.warning {
   background-color: rgba(209, 36, 47, 0.1);
   color: #d1242f;
   border: 1px solid rgba(209, 36, 47, 0.2);
 }
-body div#main-content form .form-message.info {
+body div#main-content form .form-message.info, body #modify-user form .form-message.info {
   background-color: rgba(9, 105, 218, 0.1);
   color: #0969da;
   border: 1px solid rgba(9, 105, 218, 0.2);

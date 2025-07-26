@@ -1,7 +1,7 @@
 @import 'theme-regular';
 
 body {
-    div#main-content { // where the md is        
+    div#main-content,#modify-user { // where the md is        
         textarea {
             background-color: #423D38ff;
             color: white;

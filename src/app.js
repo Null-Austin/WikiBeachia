@@ -333,6 +333,188 @@ app.delete('/api/v1/users/:id', async (req, res) => {
   }
 })
 
+// Update user endpoint
+app.put('/api/v1/users/:id', async (req, res) => {
+  let token = req.cookies.token;
+  
+  try {
+    const currentUser = await db.users.getUserByToken(token);
+    if (!currentUser || currentUser.role < 100) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    
+    const userId = parseInt(req.params.id);
+    if (!userId) {
+      return res.status(400).json({ error: 'Invalid user ID' });
+    }
+    
+    const { displayName, username, role, status } = req.body;
+    
+    // Validate input
+    if (!displayName || !username || role === undefined || !status) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    // Validate role
+    const roleNum = parseInt(role);
+    if (![0, 1, 50, 100].includes(roleNum)) {
+      return res.status(400).json({ error: 'Invalid role value' });
+    }
+    
+    // Validate status
+    if (!['active', 'suspended', 'pending', 'null'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status value' });
+    }
+    
+    // Get the user being modified
+    const userToUpdate = await db.users.getById(userId);
+    
+    // Prevent modifying admin user's role if not admin themselves
+    if (userToUpdate.username === 'admin' && roleNum !== 100) {
+      return res.status(403).json({ error: 'Cannot change admin user role' });
+    }
+    
+    // Update user information
+    await db.users.modifyNameDisplayName(userId, username, displayName);
+    await db.users.modifyStatus(userId, status === 'null' ? null : status);
+    
+    // Update role if it's different
+    if (userToUpdate.role !== roleNum) {
+      // For role changes, we need to use the modify method with current password
+      await db.users.modify(userId, username, userToUpdate.password, displayName, roleNum);
+    }
+    
+    res.status(200).json({ message: 'User updated successfully' });
+  } catch (err) {
+    console.error('Error updating user:', err);
+    if (err.message === 'User not found') {
+      res.status(404).json({ error: 'User not found' });
+    } else if (err.message.includes('UNIQUE constraint failed')) {
+      res.status(400).json({ error: 'Username or display name already exists' });
+    } else {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+})
+
+// Suspend/Unsuspend user endpoint
+app.post('/api/v1/users/:id/suspend', async (req, res) => {
+  let token = req.cookies.token;
+  
+  try {
+    const currentUser = await db.users.getUserByToken(token);
+    if (!currentUser || currentUser.role < 100) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    
+    const userId = parseInt(req.params.id);
+    if (!userId) {
+      return res.status(400).json({ error: 'Invalid user ID' });
+    }
+    
+    // Get the user being suspended/unsuspended
+    const userToUpdate = await db.users.getById(userId);
+    
+    // Prevent suspending admin user
+    if (userToUpdate.username === 'admin') {
+      return res.status(403).json({ error: 'Cannot suspend the admin user' });
+    }
+    
+    // Prevent users from suspending themselves
+    if (currentUser.id === userId) {
+      return res.status(403).json({ error: 'Cannot suspend your own account' });
+    }
+    
+    // Toggle suspension status
+    const newStatus = userToUpdate.account_status === 'suspended' ? 'active' : 'suspended';
+    await db.users.modifyStatus(userId, newStatus);
+    
+    res.status(200).json({ 
+      message: `User ${newStatus === 'suspended' ? 'suspended' : 'unsuspended'} successfully`,
+      newStatus: newStatus
+    });
+  } catch (err) {
+    console.error('Error suspending/unsuspending user:', err);
+    if (err.message === 'User not found') {
+      res.status(404).json({ error: 'User not found' });
+    } else {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+})
+
+// Reset user token endpoint
+app.post('/api/v1/users/:id/reset-token', async (req, res) => {
+  let token = req.cookies.token;
+  
+  try {
+    const currentUser = await db.users.getUserByToken(token);
+    if (!currentUser || currentUser.role < 100) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    
+    const userId = parseInt(req.params.id);
+    if (!userId) {
+      return res.status(400).json({ error: 'Invalid user ID' });
+    }
+    
+    // Get the user whose token is being reset
+    const userToUpdate = await db.users.getById(userId);
+    
+    // Reset token to null (force re-login)
+    await db.users.setToken(userId, null);
+    
+    res.status(200).json({ message: 'User token reset successfully' });
+  } catch (err) {
+    console.error('Error resetting user token:', err);
+    if (err.message === 'User not found') {
+      res.status(404).json({ error: 'User not found' });
+    } else {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+})
+
+// Reset user password endpoint
+app.post('/api/v1/users/:id/reset-password', async (req, res) => {
+  let token = req.cookies.token;
+  
+  try {
+    const currentUser = await db.users.getUserByToken(token);
+    if (!currentUser || currentUser.role < 100) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    
+    const userId = parseInt(req.params.id);
+    if (!userId) {
+      return res.status(400).json({ error: 'Invalid user ID' });
+    }
+    
+    const { newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    }
+    
+    // Get the user whose password is being reset
+    const userToUpdate = await db.users.getById(userId);
+    
+    // Reset password
+    await db.users.changePassword(userId, newPassword);
+    
+    // Also reset token to force re-login
+    await db.users.setToken(userId, null);
+    
+    res.status(200).json({ message: 'User password reset successfully' });
+  } catch (err) {
+    console.error('Error resetting user password:', err);
+    if (err.message === 'User not found') {
+      res.status(404).json({ error: 'User not found' });
+    } else {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+})
+
 // wiki content creation pages
 app.get('/wikian/:url',async (req,res,next)=>{
   if (developer){
