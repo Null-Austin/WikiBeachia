@@ -326,7 +326,6 @@ body div#main-content table th:last-child, body div#main-content table td:last-c
 body div#main-content table th {
   font-weight: 600;
   color: #24292f;
-  border-bottom: 2px solid #24292f;
 }
 body div#main-content table tr:last-child td {
   border-bottom: none;

@@ -55,7 +55,8 @@ const _db = new class{
                 description TEXT DEFAULT NULL
             );
             INSERT OR IGNORE INTO wiki_variables (name, value, description) VALUES
-                ('site_name', 'WikiBeachia', 'The name of the wiki');
+                ('site_name', 'WikiBeachia', 'The name of the wiki'),
+                ('admin_account_enabled', 'true', 'please make your own admin account in prod');
         `;
         return new Promise((resolve, reject) => {
             this.db.exec(sql, err => err ? reject(err) : resolve());
@@ -255,6 +256,32 @@ const _db = new class{
                     if(err) return rej(err);
                     if(!row) return rej(new Error('User not found'));
                     res(row);
+                });
+            });
+        }
+        async getPaginated(offset = 0, limit = 15){
+            return new Promise((res, rej) => {
+                // Get total count
+                this.db.prepare('SELECT COUNT(*) as total FROM users').get((err, countRow) => {
+                    if(err) return rej(err);
+                    
+                    // Get paginated users
+                    this.db.prepare('SELECT id, username, display_name, role, created_at, account_status FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?').all(limit, offset, (err, rows) => {
+                        if(err) return rej(err);
+                        res({
+                            users: rows,
+                            total: countRow.total
+                        });
+                    });
+                });
+            });
+        }
+        async deleteById(userid){
+            return new Promise((res, rej) => {
+                this.db.prepare('DELETE FROM users WHERE id = ?').run(userid, function(err){
+                    if(err) return rej(err);
+                    if(this.changes === 0) return rej(new Error('User not found'));
+                    res(this.changes);
                 });
             });
         }

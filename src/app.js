@@ -295,6 +295,44 @@ app.post('/api/v1/users/register/deny',async(req,res)=>{
   }
 })
 
+// Delete user endpoint
+app.delete('/api/v1/users/:id', async (req, res) => {
+  let token = req.cookies.token;
+  
+  try {
+    const currentUser = await db.users.getUserByToken(token);
+    if (!currentUser || currentUser.role < 100) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    
+    const userId = parseInt(req.params.id);
+    if (!userId) {
+      return res.status(400).json({ error: 'Invalid user ID' });
+    }
+    
+    // Prevent deleting the admin user
+    const userToDelete = await db.users.getById(userId);
+    if (userToDelete.username === 'admin') {
+      return res.status(403).json({ error: 'Cannot delete the admin user' });
+    }
+    
+    // Prevent users from deleting themselves
+    if (currentUser.id === userId) {
+      return res.status(403).json({ error: 'Cannot delete your own account' });
+    }
+    
+    await db.users.deleteById(userId);
+    res.status(200).json({ message: 'User deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting user:', err);
+    if (err.message === 'User not found') {
+      res.status(404).json({ error: 'User not found' });
+    } else {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+})
+
 // wiki content creation pages
 app.get('/wikian/:url',async (req,res,next)=>{
   if (developer){
@@ -400,12 +438,40 @@ app.get('/admin/dashboard', async (req, res) => {
   });
 });
 app.get('/admin/users/',async (req,res)=>{
-  let users = await db.users.getAll();
-  res.render('admin/users', {
-    header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
-    users: users,
-    wiki:settings
-  });
+  let page = Number(req.query.page) || 1;
+  let limit = 15; // Users per page
+  let offset = (page - 1) * limit;
+  
+  try {
+    let result = await db.users.getPaginated(offset, limit);
+    let totalUsers = result.total;
+    let users = result.users;
+    let totalPages = Math.ceil(totalUsers / limit);
+    
+    res.render('admin/users', {
+      header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
+      users: users,
+      currentPage: page,
+      totalPages: totalPages,
+      totalUsers: totalUsers,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+      wiki:settings
+    });
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).render('admin/users', {
+      header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
+      users: [],
+      currentPage: 1,
+      totalPages: 0,
+      totalUsers: 0,
+      hasNextPage: false,
+      hasPrevPage: false,
+      error: 'Failed to load users',
+      wiki:settings
+    });
+  }
 })
 app.get('/admin/applications',async (req,res)=>{
   let offset = Number(req.query.offset) || 0;

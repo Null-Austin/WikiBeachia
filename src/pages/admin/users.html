@@ -9,29 +9,167 @@
     <link rel="stylesheet" href="/css/theme-regular.css">
     <link rel="stylesheet" href="/css/md.css">
     <script src="/js/notifications.js"></script>
+    <style>
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+            gap: 10px;
+        }
+        .pagination a, .pagination span {
+            padding: 8px 12px;
+            text-decoration: none;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            color: #333;
+        }
+        .pagination a:hover {
+            background-color: #f5f5f5;
+        }
+        .pagination .current {
+            background-color: #007cba;
+            color: white;
+            border-color: #007cba;
+        }
+        .pagination .disabled {
+            color: #999;
+            cursor: not-allowed;
+        }
+        .user-info {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+        .role-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        .btn {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+            text-decoration: none;
+            display: inline-block;
+            color: white;
+            font-weight: bold;
+        }
+        .btn-edit {
+            background-color: #007cba;
+            color: white;
+        }
+        .btn-delete {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.8;
+        }
+    </style>
 </head>
 <body>
     <%- header %>
     <div id="main-content">
-        <h1>User's</h1>
-        <table>
-            <tr>
-                <th>Display Name</th>
-                <th>Username</th>
-                <th>Role</th>
-                <th>Email</th>
-                <th>Creation Date</th>
-                <th>Actions</th>
-            </tr>
-            <tr>
-                <th>admin</th>
-                <th>admin</th>
-                <th>100</th>
-                <th>austin@null-austin.me</th>
-                <th>1010101</th>
-                <th>something here</th>
-            </tr>
-        </table>
+        <h1>Users</h1>
+        
+        <% if (typeof error !== 'undefined') { %>
+            <div style="color: red; text-align: center; margin: 20px 0;">
+                Error: <%= error %>
+            </div>
+        <% } %>
+        
+        <div class="user-info">
+            <p>Total Users: <strong><%= typeof totalUsers !== 'undefined' ? totalUsers : 0 %></strong> | Page <strong><%= typeof currentPage !== 'undefined' ? currentPage : 1 %></strong> of <strong><%= typeof totalPages !== 'undefined' ? totalPages : 1 %></strong></p>
+        </div>
+
+        <% if (users && users.length > 0) { %>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Display Name</th>
+                        <th>Username</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Creation Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% users.forEach(function(user) { %>
+                        <tr>
+                            <td><%= user.id %></td>
+                            <td><%= user.display_name || user.username %></td>
+                            <td><%= user.username %></td>
+                            <td><%= user.role %></td>
+                            <td><%= user.account_status || 'Active' %></td>
+                            <td><%= new Date(user.created_at).toLocaleDateString() %></td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+            
+            <!-- Pagination -->
+            <% if (typeof totalPages !== 'undefined' && totalPages > 1) { %>
+            <div class="pagination">
+                <% if (typeof hasPrevPage !== 'undefined' && hasPrevPage) { %>
+                    <a href="?page=1">&laquo; First</a>
+                    <a href="?page=<%= currentPage - 1 %>">&lsaquo; Previous</a>
+                <% } else { %>
+                    <span class="disabled">&laquo; First</span>
+                    <span class="disabled">&lsaquo; Previous</span>
+                <% } %>
+
+                <% 
+                    let startPage = Math.max(1, (currentPage || 1) - 2);
+                    let endPage = Math.min((totalPages || 1), (currentPage || 1) + 2);
+                    
+                    for (let i = startPage; i <= endPage; i++) { 
+                %>
+                    <% if (i === (currentPage || 1)) { %>
+                        <span class="current"><%= i %></span>
+                    <% } else { %>
+                        <a href="?page=<%= i %>"><%= i %></a>
+                    <% } %>
+                <% } %>
+
+                <% if (typeof hasNextPage !== 'undefined' && hasNextPage) { %>
+                    <a href="?page=<%= (currentPage || 1) + 1 %>">Next &rsaquo;</a>
+                    <a href="?page=<%= totalPages %>">Last &raquo;</a>
+                <% } else { %>
+                    <span class="disabled">Next &rsaquo;</span>
+                    <span class="disabled">Last &raquo;</span>
+                <% } %>
+            </div>
+            <% } %>
+        <% } else { %>
+            <div style="text-align: center; margin: 40px 0;">
+                <p>No users found.</p>
+            </div>
+        <% } %>
     </div>
 </body>
 </html>
