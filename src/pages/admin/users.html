@@ -116,6 +116,7 @@
                         <th>Role</th>
                         <th>Status</th>
                         <th>Creation Date</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -127,6 +128,7 @@
                             <td><%= user.role %></td>
                             <td><%= user.account_status || 'Active' %></td>
                             <td><%= new Date(user.created_at).toLocaleDateString() %></td>
+                            <td><a href="javascript:void()">Suspend</a> | <a href="javascript:void()">Modify</a></td>
                         </tr>
                     <% }); %>
                 </tbody>
