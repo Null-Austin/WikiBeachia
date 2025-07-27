@@ -18,12 +18,14 @@
             <form method="<%= method || 'POST' %>" action="<%= action %>" class="dynamic-form">
                 <% fields.forEach(function(field) { %>
                     <div class="form-group">
-                        <label for="<%= field.name %>">
-                            <%= field.label %>
-                            <% if (field.required) { %>
-                                <span style="color: red;">*</span>
-                            <% } %>
-                        </label>
+                        <% if (field.type !== 'checkbox') { %>
+                            <label for="<%= field.name %>">
+                                <%= field.label %>
+                                <% if (field.required) { %>
+                                    <span style="color: red;">*</span>
+                                <% } %>
+                            </label>
+                        <% } %>
 
                         <% if (field.type === 'textarea') { %>
                             <textarea 
@@ -48,6 +50,23 @@
                                     <% }) %>
                                 <% } %>
                             </select>
+                        <% } else if (field.type === 'checkbox') { %>
+                            <div class="checkbox-wrapper">
+                                <input 
+                                    type="checkbox" 
+                                    name="<%= field.name %>" 
+                                    id="<%= field.name %>" 
+                                    value="true"
+                                    <%= (field.value === true || field.value === 'true') ? 'checked' : '' %>
+                                    <%= field.required ? 'required' : '' %>
+                                >
+                                <label for="<%= field.name %>" class="checkbox-label">
+                                    <%= field.label %>
+                                    <% if (field.required) { %>
+                                        <span style="color: red;">*</span>
+                                    <% } %>
+                                </label>
+                            </div>
                         <% } else { %>
                             <input 
                                 type="<%= field.type || 'text' %>" 
