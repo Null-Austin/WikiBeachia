@@ -32,7 +32,7 @@
                                 placeholder="<%= field.placeholder || '' %>" 
                                 rows="<%= field.rows || 5 %>"
                                 <%= field.required ? 'required' : '' %>
-                            ></textarea>
+                            ><%= field.value || '' %></textarea>
                         <% } else if (field.type === 'select') { %>
                             <select 
                                 name="<%= field.name %>" 
@@ -54,6 +54,7 @@
                                 name="<%= field.name %>" 
                                 id="<%= field.name %>" 
                                 placeholder="<%= field.placeholder || '' %>"
+                                value="<%= field.value || '' %>"
                                 <%= field.required ? 'required' : '' %>
                                 <%= (typeof field.min !== 'undefined') ? 'min="' + field.min + '"' : '' %>
                                 <%= (typeof field.max !== 'undefined') ? 'max="' + field.max + '"' : '' %>
