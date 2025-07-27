@@ -34,11 +34,6 @@ let settings = {};
 async function loadSettings() {
   settings = await db.settings.getSettings();
 }
-loadSettings().catch(err=>{
-  if (err){
-    console.error(colors.red('Error loading settings...'), err);
-  }
-})
 
 // Utility functions
 function renderForm(res, formConfig) {
@@ -735,11 +730,13 @@ app.use((req,res,next)=>{
 async function startServer() {
   try {
     await db.init(); // Wait for database initialization
+    await loadSettings(); // Load settings after database is ready
+    console.log(colors.green('Settings loaded successfully'));
     app.listen(port, () => {
       console.log(`Server is running on http://localhost:${port}`);
     });
   } catch (error) {
-    console.error('Failed to initialize database:', error);
+    console.error('Failed to initialize database or load settings:', error);
     process.exit(1);
   }
 }

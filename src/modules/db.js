@@ -287,7 +287,7 @@ const _db = new class{
     settings = new class{
         constructor(){
             this.db = db;
-            this.settings = this.getSettings();
+            this.settings = null; // Initialize as null, will be loaded when needed
         }
         async getSettings(){
             return new Promise((res, rej) => {
@@ -302,15 +302,26 @@ const _db = new class{
             });
         }
         async updateSettings(settings){
-            return new Promise((res, rej) => {
-                let {site_name, admin_account_enabled} = settings;
-                site_name = site_name || this.settings.site_name;
-                admin_account_enabled = admin_account_enabled || this.settings.admin_account_enabled;
-                this.db.serialize(() => {
-                    this.db.prepare('UPDATE wiki_variables SET value = ? WHERE name = ?').run(site_name, 'site_name');
-                    this.db.prepare('UPDATE wiki_variables SET value = ? WHERE name = ?').run(admin_account_enabled, 'admin_account_enabled');
-                    res({ site_name, admin_account_enabled });
-                });
+            return new Promise(async (res, rej) => {
+                try {
+                    // Load current settings if not already loaded
+                    if (!this.settings) {
+                        this.settings = await this.getSettings();
+                    }
+                    
+                    let {site_name, admin_account_enabled} = settings;
+                    site_name = site_name || this.settings.site_name;
+                    admin_account_enabled = admin_account_enabled || this.settings.admin_account_enabled;
+                    this.db.serialize(() => {
+                        this.db.prepare('UPDATE wiki_variables SET value = ? WHERE name = ?').run(site_name, 'site_name');
+                        this.db.prepare('UPDATE wiki_variables SET value = ? WHERE name = ?').run(admin_account_enabled, 'admin_account_enabled');
+                        // Update cached settings
+                        this.settings = { site_name, admin_account_enabled };
+                        res({ site_name, admin_account_enabled });
+                    });
+                } catch (error) {
+                    rej(error);
+                }
             });
         }
     }
