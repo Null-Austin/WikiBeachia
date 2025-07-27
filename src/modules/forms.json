@@ -1,0 +1,120 @@
+{
+  "create-post": {
+    "title": "Create New Wiki Page",
+    "formTitle": "Create New Wiki Page",
+    "method": "POST",
+    "action": "/api/v1/create-page",
+    "submitText": "Create Page",
+    "fields": [
+      {
+        "name": "display_name",
+        "label": "Page Title",
+        "type": "text",
+        "placeholder": "Title",
+        "required": true
+      },
+      {
+        "name": "content",
+        "label": "Content",
+        "type": "textarea",
+        "placeholder": "Content",
+        "rows": 12,
+        "required": true
+      }
+    ]
+  },
+  "wiki-settings": {
+    "title": "Wiki Settings",
+    "formTitle": "Update Wiki Settings",
+    "method": "POST",
+    "action": "/api/v1/update-wiki-settings",
+    "submitText": "Save Settings",
+    "fields": [
+      {
+        "name": "site_name",
+        "label": "Site Name",
+        "type": "text",
+        "placeholder": "Enter the name of your wiki",
+        "required": false,
+        "value": "this is the default wiki name, you should not be seeing this."
+      },
+      {
+        "name": "admin_account_enabled",
+        "label": "Admin account login enabled; recommended to disable",
+        "type": "checkbox",
+        "required": false,
+        "value": true
+      }
+    ]
+  },
+  "login": {
+    "title": "Login",
+    "formTitle": "Login to Your Account",
+    "method": "POST",
+    "action": "/api/v1/login",
+    "submitText": "Login",
+    "fields": [
+      {
+        "name": "username",
+        "label": "Username",
+        "type": "text",
+        "placeholder": "Enter your username",
+        "required": true
+      },
+      {
+        "name": "password",
+        "label": "Password",
+        "type": "password",
+        "placeholder": "Enter your password",
+        "required": true
+      }
+    ]
+  },
+  "register": {
+    "title": "Register",
+    "formTitle": "Apply for an account",
+    "method": "POST",
+    "action": "/api/v1/users/apply",
+    "submitText": "Apply",
+    "cancelUrl": "/form/login",
+    "fields": [
+      {
+        "name": "username",
+        "label": "Username",
+        "type": "text",
+        "placeholder": "Choose a username",
+        "required": true,
+        "helpText": "Must be 3-20 characters long"
+      },
+      {
+        "name": "reason",
+        "label": "Reason for Registration",
+        "type": "textarea",
+        "placeholder": "Why do you want to register?",
+        "required": true
+      },
+      {
+        "name": "email",
+        "label": "Email Address",
+        "type": "email",
+        "placeholder": "your.email@example.com",
+        "required": true
+      },
+      {
+        "name": "password",
+        "label": "Password",
+        "type": "password",
+        "placeholder": "Choose a strong password",
+        "required": true,
+        "helpText": "Must be at least 8 characters long"
+      },
+      {
+        "name": "confirm_password",
+        "label": "Confirm Password",
+        "type": "password",
+        "placeholder": "Re-enter your password",
+        "required": true
+      }
+    ]
+  }
+}
