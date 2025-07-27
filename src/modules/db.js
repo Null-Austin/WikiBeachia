@@ -25,7 +25,7 @@ const _db = new class{
                 last_modified DATETIME DEFAULT CURRENT_TIMESTAMP,
                 permission INTEGER DEFAULT 0
             );
-            INSERT OR IGNORE INTO pages (name, display_name, content, permission) VALUES ('home', 'Home', 'Welcome to the home page. :)', 50);
+            INSERT OR IGNORE INTO pages (name, display_name, content, permission) VALUES ('home', 'Home', 'Welcome to the home page. :)', 500);
             INSERT OR IGNORE INTO pages (name, display_name, content, permission) VALUES ('404', 'Page Not Found', 'This page does not exist. Please check the URL or return to the homepage.', 500);
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -46,7 +46,7 @@ const _db = new class{
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 permission INTEGER DEFAULT 0
             );
-            INSERT OR IGNORE INTO users (username,password,display_name,role) VALUES ('admin','${hash('admin')}','Site Administrator', 100);
+            INSERT OR IGNORE INTO users (username,password,display_name,role) VALUES ('admin','${hash('admin')}','Site Administrator', 500);
 
             CREATE TABLE IF NOT EXISTS wiki_variables (
                 name TEXT PRIMARY KEY UNIQUE NOT NULL,
