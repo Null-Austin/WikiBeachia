@@ -17,6 +17,7 @@ const userAuth = require('./modules/userauth.js');
 const forms = require('./modules/forms.js');
 const schemas = require('./modules/schemas.js');
 const { func } = require('joi');
+const { permission } = require('node:process');
 
 // Simple pre run checks
 if (developer){
@@ -109,11 +110,15 @@ app.use(authenticateUser);
 // static end points
 app.get('/', async (req, res) => {
   let page = await db.pages.getPage('home')
+  page.url = req.originalUrl
   res.render('wiki',{
     'header':fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
     'content':page.content,
+    permission: page.permission || 100,
     'title': page.display_name || page.name,
-    wiki:settings
+    page: page,
+    wiki:settings,
+    user:req.user
   });
 });
 app.get('/wiki/', (req, res) => {
@@ -146,16 +151,30 @@ if (developer){
 app.get('/wiki/:name', async (req, res) => {
   try {
     let page = await db.pages.getPage(req.params.name)
+    page.url = req.originalUrl
     res.render('wiki',{
       'header':fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
       'content':page.content,
+      permission: page.permission || 100,
       'title': page.display_name || page.name,
-      wiki:settings
+      wiki:settings,
+      page: page,
+      user:req.user
     });
   } catch (error) {
     return res.status(404).redirect('/wiki/404')
   }
 });
+app.get('/wiki/:name/edit', async (req, res) => {
+  let page = await db.pages.getPage(req.params.name);
+  if (!page) {
+    return res.status(404).redirect('/wiki/404');
+  }
+  if (!req.user || req.user.role < (page.permission-1 || 99)) {
+    return res.status(403).json({ error: 'You do not have permission to edit this page.' });
+  }
+  return res.send('wokred :)')
+})
 
 // static file endpoints
 app.get('/css/:page', (req, res) => {
