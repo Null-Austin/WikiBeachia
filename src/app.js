@@ -23,7 +23,7 @@ if (developer){
   console.log(colors.bgBlack(
     colors.red(
       colors.underline(
-        'Developer/Testing mode activated. - this product is not intended for prod use.'
+        `Developer/Testing mode activated. - this product is not intended for prod use.\n${colors.bold('Developers note:')} Dev mode has limited functionality, and dont post bugs about it.`
       )
     ))
   );
@@ -144,6 +144,9 @@ app.post('/api/v1/login', async (req, res) => {
   const { username, password, returnTo } = body;
   try {
     const user = await userAuth.login(username, password);
+    if (user.account_status === 'suspended') {
+      return res.status(403).json({ error: 'Your account is suspended. Please contact support.' });
+    }
     
     // Set the token as an httpOnly cookie
     res.cookie('token', user.token, {
