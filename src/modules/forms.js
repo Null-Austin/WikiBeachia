@@ -5,7 +5,7 @@ const path = require('path');
 // Load form configurations from JSON file
 let formConfigs = {};
 try {
-  const configPath = path.join(__dirname, 'forms.json');
+  const configPath = path.join(__dirname, '../misc/forms.json');
   const configData = fs.readFileSync(configPath, 'utf8');
   formConfigs = JSON.parse(configData);
 } catch (error) {

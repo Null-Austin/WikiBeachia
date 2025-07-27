@@ -34,7 +34,7 @@ const _db = new class{
                 role INTEGER DEFAULT 1, 
                 token TEXT UNIQUE DEFAULT NULL,
                 display_name TEXT UNIQUE,
-                account_status TEXT DEFAULT NULL
+                account_status TEXT DEFAULT 'active'
             );
             CREATE TABLE IF NOT EXISTS applications (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -46,8 +46,6 @@ const _db = new class{
                 permission INTEGER DEFAULT 0
             );
             INSERT OR IGNORE INTO users (username,password,display_name,role) VALUES ('admin','${hash('admin')}','Site Administrator', 100);
-
-
 
             CREATE TABLE IF NOT EXISTS wiki_variables (
                 name TEXT PRIMARY KEY UNIQUE NOT NULL,
@@ -289,8 +287,9 @@ const _db = new class{
     settings = new class{
         constructor(){
             this.db = db;
+            this.settings = this.getSettings();
         }
-        getSettings(){
+        async getSettings(){
             return new Promise((res, rej) => {
                 this.db.prepare('SELECT * FROM wiki_variables').all((err, rows) => {
                     if(err) return rej(err);
@@ -302,11 +301,15 @@ const _db = new class{
                 });
             });
         }
-        modifySetting(name,value){
+        async updateSettings(settings){
             return new Promise((res, rej) => {
-                this.db.prepare('INSERT INTO wiki_variables (name, value) VALUES (?, ?) ON CONFLICT(name) DO UPDATE SET value = ?').run(name, value, value, function(err){
-                    if(err) return rej(err);
-                    res(this.changes);
+                let {site_name, admin_account_enabled} = settings;
+                site_name = site_name || this.settings.site_name;
+                admin_account_enabled = admin_account_enabled || this.settings.admin_account_enabled;
+                this.db.serialize(() => {
+                    this.db.prepare('UPDATE wiki_variables SET value = ? WHERE name = ?').run(site_name, 'site_name');
+                    this.db.prepare('UPDATE wiki_variables SET value = ? WHERE name = ?').run(admin_account_enabled, 'admin_account_enabled');
+                    res({ site_name, admin_account_enabled });
                 });
             });
         }

@@ -147,6 +147,9 @@ app.post('/api/v1/login', async (req, res) => {
     if (user.account_status === 'suspended') {
       return res.status(403).json({ error: 'Your account is suspended. Please contact support.' });
     }
+    if (user.username === 'admin' && settings.admin_account_enabled === 'false'){
+      return res.status(403).json({ error: 'The admin account is currently disabled. Please contact support.' }); // settings available in database settings table.
+    }
     
     // Set the token as an httpOnly cookie
     res.cookie('token', user.token, {
@@ -217,7 +220,34 @@ app.post('/api/v1/logout', async (req, res) => {
     res.json({ message: 'Logout successful', redirectUrl: '/' });
   }
 });
-
+app.post('/api/v1/update-wiki-settings',async (req,res)=>{
+  let token = req.cookies.token;
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  try {
+    const user = await db.users.getUserByToken(token);
+    if (user.role < 100) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+  } catch (err) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  const body = req.body;
+  if (!body){
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+  try {
+    await db.settings.updateSettings(body);
+    await loadSettings();
+    res.status(200).json({ message: 'Wiki settings updated successfully' });
+  } catch (err){
+    console.error('Error updating wiki settings:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
 app.post('/api/v1/users/apply', async (req, res) => {
   const body = req.body;
   if (!body || !body.username || !body.email || !body.reason || !body.password) {
@@ -621,6 +651,20 @@ app.get('/admin/dashboard', async (req, res) => {
     user: user,
     wiki:settings
   });
+});
+app.get('/admin/wiki', async (req, res) => {
+  let formConfig = forms.getFormConfig('wiki-settings');
+  let fields = formConfig.fields || false;
+  if (!fields) {
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+
+  let {site_name, admin_account_enabled} = settings;
+  fields[0].value = settings.site_name;
+  fields[1].value = settings.admin_account_enabled;
+
+  formConfig.fields = fields;
+  renderForm(res, formConfig);
 });
 app.get('/admin/users/',async (req,res)=>{
   let page = Number(req.query.page) || 1;

@@ -14,6 +14,10 @@
     <div id="main-content">
         <h1>User Dashboard</h1>
         <h3>Welcome, <b><%= user.display_name %></b>!</h3>
+        <% if (user.role >= 100) { %>
+            <a href="/admin/dashboard">Administrator dashboard</a><br>
+            <small>Site Administrator Dashboard</small><br>
+        <% } %>
         <a href="create-page">Create Page</a><br>
         <small>A simple create page, page.</small><br>
     </div>
