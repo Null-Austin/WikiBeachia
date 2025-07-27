@@ -26,6 +26,7 @@ const _db = new class{
                 permission INTEGER DEFAULT 0
             );
             INSERT OR IGNORE INTO pages (name, display_name, content) VALUES ('404', 'Page Not Found', 'This page does not exist. Please check the URL or return to the homepage.');
+            INSERT OR IGNORE INTO pages (name, display_name, content, permission) VALUES ('home', 'Home', 'Welcome to the home page. :)', 50);
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE,

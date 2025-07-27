@@ -35,6 +35,53 @@ async function loadSettings() {
   settings = await db.settings.getSettings();
 }
 
+// User authentication middleware
+async function authenticateUser(req, res, next) {
+  const token = req.cookies.token;
+  
+  if (!token) {
+    req.user = null;
+    return next();
+  }
+  
+  try {
+    const user = await db.users.getUserByToken(token);
+    req.user = user;
+  } catch (err) {
+    // Invalid or expired token
+    req.user = null;
+    res.clearCookie('token');
+  }
+  
+  next();
+}
+
+// Authorization middleware factory
+function requireRole(minRole = 0) {
+  return (req, res, next) => {
+    if (!req.user) {
+      // Store the current URL for redirect after login
+      res.cookie('returnTo', req.originalUrl, {
+        httpOnly: true,
+        maxAge: 10 * 60 * 1000, // 10 minutes
+        sameSite: 'lax'
+      });
+      return res.redirect('/login');
+    }
+    
+    if (req.user.role < minRole) {
+      res.cookie('returnTo', req.originalUrl, {
+        httpOnly: true,
+        maxAge: 10 * 60 * 1000, // 10 minutes
+        sameSite: 'lax'
+      });
+      return res.redirect('/login');
+    }
+    
+    next();
+  };
+}
+
 // Utility functions
 function renderForm(res, formConfig) {
   return res.render('form', {
@@ -56,10 +103,16 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// User authentication middleware
+app.use(authenticateUser);
+
 // static end points
-app.get('/', (req, res) => {
-  res.render('index',{
+app.get('/', async (req, res) => {
+  let page = await db.pages.getPage('home')
+  res.render('wiki',{
     'header':fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
+    'content':page.content,
+    'title': page.display_name || page.name,
     wiki:settings
   });
 });
@@ -190,14 +243,12 @@ app.post('/api/v1/login', async (req, res) => {
 
 app.post('/api/v1/logout', async (req, res) => {
   try {
-    const token = req.cookies.token;
-    if (token) {
+    if (req.user) {
       // Clear the token from the database
       try {
-        const user = await db.users.getUserByToken(token);
-        await db.users.setToken(user.id, null);
+        await db.users.setToken(req.user.id, null);
       } catch (err) {
-        // Token might be invalid or user not found, but that's okay for logout
+        // Token cleanup failed, but that's okay for logout
         console.log('Token cleanup failed during logout:', err.message);
       }
     }
@@ -216,17 +267,7 @@ app.post('/api/v1/logout', async (req, res) => {
   }
 });
 app.post('/api/v1/update-wiki-settings',async (req,res)=>{
-  let token = req.cookies.token;
-  if (!token) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  
-  try {
-    const user = await db.users.getUserByToken(token);
-    if (user.role < 100) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-  } catch (err) {
+  if (!req.user || req.user.role < 100) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
@@ -277,8 +318,7 @@ app.post('/api/v1/users/apply', async (req, res) => {
   }
 });
 app.post('/api/v1/users/register',async(req,res)=>{
-  let token = req.cookies.token;
-  if (!token || db.users.getUserByToken(token).role < 100) {
+  if (!req.user || req.user.role < 100) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   const body = req.body;
@@ -301,8 +341,7 @@ app.post('/api/v1/users/register',async(req,res)=>{
   }
 })
 app.post('/api/v1/users/register/deny',async(req,res)=>{
-  let token = req.cookies.token;
-  if (!token || db.users.getUserByToken(token).role < 100) {
+  if (!req.user || req.user.role < 100) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   const body = req.body;
@@ -325,19 +364,16 @@ app.post('/api/v1/users/register/deny',async(req,res)=>{
 
 // Delete user endpoint
 app.delete('/api/v1/users/:id', async (req, res) => {
-  let token = req.cookies.token;
+  if (!req.user || req.user.role < 100) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  const userId = parseInt(req.params.id);
+  if (!userId) {
+    return res.status(400).json({ error: 'Invalid user ID' });
+  }
   
   try {
-    const currentUser = await db.users.getUserByToken(token);
-    if (!currentUser || currentUser.role < 100) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-    
-    const userId = parseInt(req.params.id);
-    if (!userId) {
-      return res.status(400).json({ error: 'Invalid user ID' });
-    }
-    
     // Prevent deleting the admin user
     const userToDelete = await db.users.getById(userId);
     if (userToDelete.username === 'admin') {
@@ -345,7 +381,7 @@ app.delete('/api/v1/users/:id', async (req, res) => {
     }
     
     // Prevent users from deleting themselves
-    if (currentUser.id === userId) {
+    if (req.user.id === userId) {
       return res.status(403).json({ error: 'Cannot delete your own account' });
     }
     
@@ -363,37 +399,34 @@ app.delete('/api/v1/users/:id', async (req, res) => {
 
 // Update user endpoint
 app.put('/api/v1/users/:id', async (req, res) => {
-  let token = req.cookies.token;
+  if (!req.user || req.user.role < 100) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  const userId = parseInt(req.params.id);
+  if (!userId) {
+    return res.status(400).json({ error: 'Invalid user ID' });
+  }
+  
+  const { displayName, username, role, status } = req.body;
+  
+  // Validate input
+  if (!displayName || !username || role === undefined || !status) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+  
+  // Validate role
+  const roleNum = parseInt(role);
+  if (![0, 1, 50, 100].includes(roleNum)) {
+    return res.status(400).json({ error: 'Invalid role value' });
+  }
+  
+  // Validate status
+  if (!['active', 'suspended', 'pending', 'null'].includes(status)) {
+    return res.status(400).json({ error: 'Invalid status value' });
+  }
   
   try {
-    const currentUser = await db.users.getUserByToken(token);
-    if (!currentUser || currentUser.role < 100) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-    
-    const userId = parseInt(req.params.id);
-    if (!userId) {
-      return res.status(400).json({ error: 'Invalid user ID' });
-    }
-    
-    const { displayName, username, role, status } = req.body;
-    
-    // Validate input
-    if (!displayName || !username || role === undefined || !status) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-    
-    // Validate role
-    const roleNum = parseInt(role);
-    if (![0, 1, 50, 100].includes(roleNum)) {
-      return res.status(400).json({ error: 'Invalid role value' });
-    }
-    
-    // Validate status
-    if (!['active', 'suspended', 'pending', 'null'].includes(status)) {
-      return res.status(400).json({ error: 'Invalid status value' });
-    }
-    
     // Get the user being modified
     const userToUpdate = await db.users.getById(userId);
     
@@ -427,19 +460,16 @@ app.put('/api/v1/users/:id', async (req, res) => {
 
 // Suspend/Unsuspend user endpoint
 app.post('/api/v1/users/:id/suspend', async (req, res) => {
-  let token = req.cookies.token;
+  if (!req.user || req.user.role < 100) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  const userId = parseInt(req.params.id);
+  if (!userId) {
+    return res.status(400).json({ error: 'Invalid user ID' });
+  }
   
   try {
-    const currentUser = await db.users.getUserByToken(token);
-    if (!currentUser || currentUser.role < 100) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-    
-    const userId = parseInt(req.params.id);
-    if (!userId) {
-      return res.status(400).json({ error: 'Invalid user ID' });
-    }
-    
     // Get the user being suspended/unsuspended
     const userToUpdate = await db.users.getById(userId);
     
@@ -449,7 +479,7 @@ app.post('/api/v1/users/:id/suspend', async (req, res) => {
     }
     
     // Prevent users from suspending themselves
-    if (currentUser.id === userId) {
+    if (req.user.id === userId) {
       return res.status(403).json({ error: 'Cannot suspend your own account' });
     }
     
@@ -473,19 +503,16 @@ app.post('/api/v1/users/:id/suspend', async (req, res) => {
 
 // Reset user token endpoint
 app.post('/api/v1/users/:id/reset-token', async (req, res) => {
-  let token = req.cookies.token;
+  if (!req.user || req.user.role < 100) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  const userId = parseInt(req.params.id);
+  if (!userId) {
+    return res.status(400).json({ error: 'Invalid user ID' });
+  }
   
   try {
-    const currentUser = await db.users.getUserByToken(token);
-    if (!currentUser || currentUser.role < 100) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-    
-    const userId = parseInt(req.params.id);
-    if (!userId) {
-      return res.status(400).json({ error: 'Invalid user ID' });
-    }
-    
     // Get the user whose token is being reset
     const userToUpdate = await db.users.getById(userId);
     
@@ -505,24 +532,21 @@ app.post('/api/v1/users/:id/reset-token', async (req, res) => {
 
 // Reset user password endpoint
 app.post('/api/v1/users/:id/reset-password', async (req, res) => {
-  let token = req.cookies.token;
+  if (!req.user || req.user.role < 100) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  const userId = parseInt(req.params.id);
+  if (!userId) {
+    return res.status(400).json({ error: 'Invalid user ID' });
+  }
+  
+  const { newPassword } = req.body;
+  if (!newPassword || newPassword.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+  }
   
   try {
-    const currentUser = await db.users.getUserByToken(token);
-    if (!currentUser || currentUser.role < 100) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-    
-    const userId = parseInt(req.params.id);
-    if (!userId) {
-      return res.status(400).json({ error: 'Invalid user ID' });
-    }
-    
-    const { newPassword } = req.body;
-    if (!newPassword || newPassword.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
-    }
-    
     // Get the user whose password is being reset
     const userToUpdate = await db.users.getById(userId);
     
@@ -544,50 +568,19 @@ app.post('/api/v1/users/:id/reset-password', async (req, res) => {
 })
 
 // wiki content creation pages
-app.get('/wikian/:url',async (req,res,next)=>{
-  if (developer){
+app.get('/wikian/:url', requireRole(10), (req, res, next) => {
+  if (developer) {
     return next();
   }
-  
-  let token = req.cookies.token;
-  if (!token) {
-    // Store the current URL for redirect after login
-    res.cookie('returnTo', req.originalUrl, {
-      httpOnly: true,
-      maxAge: 10 * 60 * 1000, // 10 minutes
-      sameSite: 'lax'
-    });
-    return res.redirect('/login');
-  }
-  
-  try {
-    const user = await db.users.getUserByToken(token);
-    if (user.role < 10) {
-      res.cookie('returnTo', req.originalUrl, {
-        httpOnly: true,
-        maxAge: 10 * 60 * 1000, // 10 minutes
-        sameSite: 'lax'
-      });
-      return res.redirect('/login');
-    }
-    return next();
-  } catch (err) {
-    res.cookie('returnTo', req.originalUrl, {
-      httpOnly: true,
-      maxAge: 10 * 60 * 1000, // 10 minutes
-      sameSite: 'lax'
-    });
-    return res.redirect('/login');
-  }
+  return next();
 })
 app.get('/wikian/',(req,res)=>{
   res.redirect('/wikian/dashboard');
 })
 app.get('/wikian/dashboard', async (req, res) => {
-  let user = req.cookies.token ? await db.users.getUserByToken(req.cookies.token) : null;
   res.render('wikian/dashboard', {
     header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
-    user: user,
+    user: req.user,
     wiki:settings
   });
 });
@@ -600,50 +593,19 @@ app.get('/wikian/create-page',(req,res)=>{
 })
 
 // Admin pages
-app.get('/admin/:url',async (req,res,next)=>{
-  if (developer){
+app.get('/admin/:url', requireRole(100), (req, res, next) => {
+  if (developer) {
     return next();
   }
-  
-  let token = req.cookies.token;
-  if (!token) {
-    // Store the current URL for redirect after login
-    res.cookie('returnTo', req.originalUrl, {
-      httpOnly: true,
-      maxAge: 10 * 60 * 1000, // 10 minutes
-      sameSite: 'lax'
-    });
-    return res.redirect('/login');
-  }
-  
-  try {
-    const user = await db.users.getUserByToken(token);
-    if (user.role < 100) {
-      res.cookie('returnTo', req.originalUrl, {
-        httpOnly: true,
-        maxAge: 10 * 60 * 1000, // 10 minutes
-        sameSite: 'lax'
-      });
-      return res.redirect('/login');
-    }
-    return next();
-  } catch (err) {
-    res.cookie('returnTo', req.originalUrl, {
-      httpOnly: true,
-      maxAge: 10 * 60 * 1000, // 10 minutes
-      sameSite: 'lax'
-    });
-    return res.redirect('/login');
-  }
+  return next();
 })
 app.get('/admin',(req,res)=>{
   res.redirect('/admin/dashboard');
 })
 app.get('/admin/dashboard', async (req, res) => {
-  let user = req.cookies.token ? await db.users.getUserByToken(req.cookies.token) : null;
   res.render('admin/dashboard', {
     header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
-    user: user,
+    user: req.user,
     wiki:settings
   });
 });
@@ -730,13 +692,12 @@ app.use((req,res,next)=>{
 async function startServer() {
   try {
     await db.init(); // Wait for database initialization
-    await loadSettings(); // Load settings after database is ready
-    console.log(colors.green('Settings loaded successfully'));
+    await loadSettings(); // Load settings before starting server
     app.listen(port, () => {
       console.log(`Server is running on http://localhost:${port}`);
     });
   } catch (error) {
-    console.error('Failed to initialize database or load settings:', error);
+    console.error('Failed to initialize database:', error);
     process.exit(1);
   }
 }
