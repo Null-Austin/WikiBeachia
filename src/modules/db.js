@@ -310,8 +310,15 @@ const _db = new class{
                     }
                     
                     let {site_name, admin_account_enabled} = settings;
-                    site_name = site_name || this.settings.site_name;
-                    admin_account_enabled = admin_account_enabled || this.settings.admin_account_enabled;
+                    // Use explicit undefined check instead of falsy check
+                    site_name = site_name !== undefined ? site_name : this.settings.site_name;
+                    admin_account_enabled = admin_account_enabled !== undefined ? admin_account_enabled : this.settings.admin_account_enabled;
+                    
+                    // Convert boolean values to strings for database storage
+                    if (typeof admin_account_enabled === 'boolean') {
+                        admin_account_enabled = admin_account_enabled.toString();
+                    }
+                    
                     this.db.serialize(() => {
                         this.db.prepare('UPDATE wiki_variables SET value = ? WHERE name = ?').run(site_name, 'site_name');
                         this.db.prepare('UPDATE wiki_variables SET value = ? WHERE name = ?').run(admin_account_enabled, 'admin_account_enabled');

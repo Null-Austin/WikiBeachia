@@ -108,9 +108,18 @@
                     
                     const formData = new FormData(form);
                     const data = {};
-                    for (let [key, value] of formData.entries()) {
-                        data[key] = value;
-                    }
+                    
+                    // Handle all form inputs including unchecked checkboxes
+                    const inputs = form.querySelectorAll('input, select, textarea');
+                    inputs.forEach(input => {
+                        if (input.type === 'checkbox') {
+                            // For checkboxes, explicitly set true/false
+                            data[input.name] = input.checked;
+                        } else if (input.name) {
+                            // For other inputs, use their value
+                            data[input.name] = input.value;
+                        }
+                    });
                     
                     // Add returnTo parameter if it exists in URL
                     const urlParams = new URLSearchParams(window.location.search);
