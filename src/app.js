@@ -109,17 +109,7 @@ app.use(authenticateUser);
 
 // static end points
 app.get('/', async (req, res) => {
-  let page = await db.pages.getPage('home')
-  page.url = req.originalUrl
-  res.render('wiki',{
-    'header':fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
-    'content':page.content,
-    permission: page.permission || 100,
-    'title': page.display_name || page.name,
-    page: page,
-    wiki:settings,
-    user:req.user
-  });
+  res.redirect('/wiki/home');
 });
 app.get('/wiki/', (req, res) => {
   res.redirect('/');
@@ -173,7 +163,39 @@ app.get('/wiki/:name/edit', async (req, res) => {
   if (!req.user || req.user.role < (page.permission-1 || 99)) {
     return res.status(403).json({ error: 'You do not have permission to edit this page.' });
   }
-  return res.send('wokred :)')
+  let formConfig = forms.getFormConfig('edit-page');
+  if (!formConfig) {
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+  let fields = formConfig.fields || false;
+  if (!fields) {
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+  fields[0].value = page.display_name;
+  fields[1].value = page.content;
+  renderForm(res,formConfig)
+})
+app.post('/wiki/:name/edit', async (req, res) => {
+  let page = await db.pages.getPage(req.params.name);
+  if (!page) {
+    return res.status(404).redirect('/wiki/404');
+  }
+  if (!req.user || req.user.role < (page.permission-1 || 99)) {
+    return res.status(403).json({ error: 'You do not have permission to edit this page.' });
+  }
+  let body = req.body;
+  if (!body || !body.name || !body.content) {
+    return res.status(400).json({ error: 'Please provide both a page title and content.' });
+  }
+  let { name, content } = body;
+  let display_name = name;
+  name = name.toLowerCase().replace(/\s+/g, '_');
+  try {
+    await db.pages.updatePage(page.id,name,display_name,content)
+  } catch (error) {
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+  return res.redirect('/wiki/'+name)
 })
 
 // static file endpoints

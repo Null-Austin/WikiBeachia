@@ -70,6 +70,29 @@
       }
     ]
   },
+  "edit-page": {
+    "title": "Edit page",
+    "formTitle": "Edit page",
+    "method": "POST",
+    "action": "",
+    "submitText": "Submit",
+    "fields": [
+      {
+        "name": "name",
+        "label": "Article name",
+        "type": "text",
+        "placeholder": "[insert article epic name here]",
+        "required": true
+      },
+      {
+        "name": "content",
+        "label": "Page Content",
+        "type": "textarea",
+        "placeholder": "[insert epic page content here?]",
+        "required": true
+      }
+    ]
+  },
   "register": {
     "title": "Register",
     "formTitle": "Apply for an account",

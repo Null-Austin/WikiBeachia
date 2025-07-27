@@ -25,8 +25,8 @@ const _db = new class{
                 last_modified DATETIME DEFAULT CURRENT_TIMESTAMP,
                 permission INTEGER DEFAULT 0
             );
-            INSERT OR IGNORE INTO pages (name, display_name, content) VALUES ('404', 'Page Not Found', 'This page does not exist. Please check the URL or return to the homepage.');
             INSERT OR IGNORE INTO pages (name, display_name, content, permission) VALUES ('home', 'Home', 'Welcome to the home page. :)', 50);
+            INSERT OR IGNORE INTO pages (name, display_name, content, permission) VALUES ('404', 'Page Not Found', 'This page does not exist. Please check the URL or return to the homepage.', 500);
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE,
@@ -134,9 +134,9 @@ const _db = new class{
         }
         async updatePage(id, name, display_name, content){
             if (!display_name){display_name = name;}
-            name = String(name).toLowerCase();  
+            name = name.toLowerCase().replace(/\s+/g, '_');
             return new Promise((res,rej)=>{
-                this.db.prepare('UPDATE pages SET display_name = ?, content = ?, last_modified = CURRENT_TIMESTAMP WHERE id = ?').run(display_name, content, id, function(err){
+                this.db.prepare('UPDATE pages SET display_name = ?, name = ?, content = ?, last_modified = CURRENT_TIMESTAMP WHERE id = ?').run(display_name, name, content, id, function(err){
                     if(err) return rej(err);
                     if(this.changes === 0) return rej(new Error('Page not found'));
                     res(this.changes);
