@@ -1,0 +1,57 @@
+{
+  "bots": {
+    "autoStart": ["HomeUpdaterBot", "MaintenanceBot"],
+    "credentials": {
+      "username": "_framework",
+      "clientSecret": "CHANGE_THIS_IN_PRODUCTION_USE_ENVIRONMENT_VARIABLE"
+    }
+  },
+  "scheduling": {
+    "enabled": true,
+    "timezone": "UTC",
+    "tasks": [
+      {
+        "name": "daily-maintenance",
+        "cron": "0 2 * * *",
+        "bot": "MaintenanceBot",
+        "enabled": true
+      },
+      {
+        "name": "content-monitoring",
+        "cron": "0 */4 * * *",
+        "bot": "ContentMonitorBot",
+        "enabled": true
+      },
+      {
+        "name": "home-update",
+        "cron": "0 */6 * * *",
+        "bot": "HomeUpdaterBot",
+        "enabled": true
+      }
+    ]
+  },
+  "api": {
+    "timeout": 30000,
+    "retries": 3,
+    "baseUrl": "http://localhost:3000"
+  },
+  "logging": {
+    "level": "info",
+    "rotation": true,
+    "maxFiles": 10,
+    "maxFileSize": "10MB"
+  },
+  "contentMonitoring": {
+    "enableAutoModeration": false,
+    "suspiciousKeywords": [
+      "spam", "phishing", "malware", "virus",
+      "fake", "scam", "fraud", "illegal"
+    ],
+    "maxContentLength": 50000
+  },
+  "maintenance": {
+    "cleanupThreshold": 30,
+    "backupEnabled": true,
+    "optimizeDatabase": true
+  }
+}

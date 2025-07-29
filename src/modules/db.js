@@ -5,11 +5,16 @@ const db = new sqlite3.Database(db_path);
 
 const crypto = require('node:crypto');
 
+function randomBytes(size=32){
+    return crypto.randomBytes(size).toString('hex');
+}
 function hash(s){
     return crypto.createHash('sha256').update(s).digest('hex');
 }
 const _db = new class{
     constructor(){
+        this.randomBytes = randomBytes;
+        this.hash = hash;
         this.db = db;
     }
     async init() {
@@ -35,7 +40,8 @@ const _db = new class{
                 role INTEGER DEFAULT 1, 
                 token TEXT UNIQUE DEFAULT NULL,
                 display_name TEXT UNIQUE,
-                account_status TEXT DEFAULT 'active'
+                account_status TEXT DEFAULT 'active',
+                type TEXT DEFAULT 'user'
             );
             CREATE TABLE IF NOT EXISTS applications (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -46,7 +52,9 @@ const _db = new class{
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 permission INTEGER DEFAULT 0
             );
-            INSERT OR IGNORE INTO users (username,password,display_name,role) VALUES ('admin','${hash('admin')}','Site Administrator', 500);
+            INSERT OR IGNORE INTO users (username,password,display_name,role, type) VALUES 
+                ('admin','${hash('admin')}','Site Administrator', 500, 'user'),
+                ('_system','${this.randomBytes()}','System Bot', 500, 'bot');
 
             CREATE TABLE IF NOT EXISTS wiki_variables (
                 name TEXT PRIMARY KEY UNIQUE NOT NULL,
@@ -145,7 +153,7 @@ const _db = new class{
         }
         async getAllPages(){
             return new Promise((res,rej)=>{
-                this.db.prepare('SELECT name, display_name, created_at, last_modified FROM pages WHERE name != "404" ORDER BY display_name').all((err,rows)=>{
+                this.db.prepare('SELECT * FROM pages WHERE name != "404" ORDER BY display_name').all((err,rows)=>{
                     if(err) return rej(err);
                     res(rows);
                 })
