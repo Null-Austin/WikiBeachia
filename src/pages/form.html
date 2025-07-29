@@ -8,6 +8,9 @@
     <link rel="stylesheet" href="/css/index.css">
     <link rel="stylesheet" href="/css/theme-regular.css">
     <link rel="stylesheet" href="/css/md.css">
+    <% if (head) { %>
+    <%- head %>
+    <% } %>
     <script src="/js/notifications.js"></script>
 </head>
 <body>
@@ -88,8 +91,8 @@
                 
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary"><%= submitText || 'Submit' %></button>
-                    <% if (typeof cancelUrl !== 'undefined' && cancelUrl) { %>
-                        <a href="<%= cancelUrl %>" class="btn btn-secondary">Cancel</a>
+                    <% if (typeof btnsecondary !== 'undefined' && btnsecondary) { %>
+                        <a href="<%= btnsecondary.url %>" class="btn btn-secondary"><%= btnsecondary.text%></a>
                     <% } %>
                 </div>
             </form>

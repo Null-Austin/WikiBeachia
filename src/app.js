@@ -91,8 +91,9 @@ function requireRole(minRole = 0) {
 function renderForm(res, formConfig) {
   return res.render('form', {
     ...formConfig,
-    header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
-    wiki:settings
+    header: fs.readFileSync(path.join(__dirname, 'misc/header.html'), 'utf8'),
+    wiki: settings,
+    head: formConfig.head || '' // Ensure head is passed to the template
   });
 }
 
@@ -171,7 +172,7 @@ app.get('/wiki/:name', async (req, res) => {
     let markdownEnabled = page.markdown || false;
     res.render('wiki',{
       'header':fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
-      'content':markdownEnabled ? md.render(page.content) : page.content,
+      'content':!markdownEnabled ? md.render(page.content) : page.content,
       permission: page.permission || 100,
       'title': page.display_name || page.name,
       wiki:settings,
