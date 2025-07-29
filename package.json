@@ -6,7 +6,10 @@
   "scripts": {
     "start": "node src/app.js",
     "sass": "sass --watch src/scss/:src/css/ --no-source-map",
-    "test": "node src/app.js -t"
+    "test": "node src/app.js -t",
+    "bots": "node wiki/bots/start.js",
+    "bot-test": "node wiki/bots/test.js",
+    "bot-status": "node wiki/bots/bot-manager.js status"
   },
   "repository": {
     "type": "git",
