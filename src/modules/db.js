@@ -123,6 +123,14 @@ const _db = new class{
         constructor(){
             this.db = db;
         }
+        async deletePage(id){
+            return new Promise((res,rej)=>{
+                this.db.prepare('DELETE FROM pages WHERE id = ?').run(id,(err,row)=>{
+                    if (err) return rej (err);
+                    res(row)
+                })
+            })
+        }
         async getPage(name){
             name = String(name).toLowerCase();
             return new Promise((res,rej)=>{

@@ -88,12 +88,13 @@ function requireRole(minRole = 0) {
 }
 
 // Utility functions
-function renderForm(res, formConfig) {
+function renderForm(res, req, formConfig) {
   return res.render('form', {
     ...formConfig,
     header: fs.readFileSync(path.join(__dirname, 'misc/header.html'), 'utf8'),
     wiki: settings,
-    head: formConfig.head || '' // Ensure head is passed to the template
+    head: formConfig.head || '', // Ensure head is passed to the template
+    page: { url: req.originalUrl }
   });
 }
 
@@ -103,9 +104,9 @@ const port = process.env.PORT || 3000;
 
 // Rate limiting for auth endpoints
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 requests per windowMs
-  message: { error: 'Too many login attempts, please try again later.' },
+  windowMs: 5 * 60 * 1000, // 15 minutes
+  max: 10, // limit each IP to 10 requests per windowMs
+  message: { error: 'Too many login attempts, please try again later. Please wait 15 minutes before trying again.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -142,11 +143,11 @@ app.get('/wiki/', (req, res) => {
 });
 app.get('/login',(req,res)=>{
   const formConfig = forms.getFormConfig('login');
-  renderForm(res, formConfig);
+  renderForm(res, req, formConfig);
 })
 app.get('/register',(req,res)=>{
   const formConfig = forms.getFormConfig('register');
-  renderForm(res, formConfig);
+  renderForm(res, req, formConfig);
 })
 
 // Generic form route for future forms
@@ -159,7 +160,7 @@ if (developer){
       return next();
     }
 
-    renderForm(res, formConfig);
+    renderForm(res, req, formConfig);
   })
 }
 
@@ -201,7 +202,11 @@ app.get('/wiki/:name/edit', async (req, res) => {
   }
   fields[0].value = page.display_name;
   fields[1].value = page.content;
-  renderForm(res,formConfig)
+  if (!req.user.role >= 100){
+    formConfig.btnsecondary
+  }
+  formConfig.head = `<script>async function _delete(){fetch('/api/v1/delete-page',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title: '${page.name}'})});}</script>`
+  renderForm(res, req,formConfig)
 })
 app.post('/wiki/:name/edit', async (req, res) => {
   // Input validation
@@ -265,6 +270,32 @@ app.post('/api/v1/create-page', async (req, res) => {
       console.error('Error creating page:', error);
       res.status(500).json({ error: 'Unable to create the page at this time. Please try again later.' });
     });
+});
+app.post('/api/v1/delete-page', async (req, res) => {
+  let body = req.body;
+  if (!body || !body.title) {
+    return res.status(400).json({ error: 'Please provide a page title' });
+  }
+  
+  let title = body.title;
+  try {
+    let page = await db.pages.getPage(title);
+    if (!page) {
+      return res.status(404).json({ error: 'Page not found' });
+    }
+    
+    // Check user permissions
+    if (!req.user || req.user.role < (page.permission || 100) || req.user.role < 100) { // user, user has less role then page.permission or fallback (100), user has less role then admin
+      return res.status(403).json({ error: 'You do not have permission to delete this page.' });
+    }
+    
+    // Delete the page
+    await db.pages.deletePage(page.id);
+    res.status(200).json({ message: 'Page deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting page:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 app.post('/api/v1/login', authLimiter, async (req, res) => {
   const body = req.body;
@@ -998,7 +1029,7 @@ app.get('/wikian/create-page',(req,res)=>{
   if (!formConfig) {
     return res.status(404).redirect('/login');
   }
-  renderForm(res, formConfig);
+  renderForm(res, req, formConfig);
 })
 
 // Admin pages
@@ -1069,7 +1100,7 @@ app.get('/admin/wiki', async (req, res) => {
   fields[1].value = settings.admin_account_enabled;
 
   formConfig.fields = fields;
-  renderForm(res, formConfig);
+  renderForm(res, req, formConfig);
 });
 app.get('/admin/users/',async (req,res)=>{
   let page = Number(req.query.page) || 1;

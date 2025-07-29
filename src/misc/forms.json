@@ -71,10 +71,12 @@
     ]
   },
   "edit-page": {
+    "head":"<script>async function _delete(){fetch('/api/v1/delete-page',{method:'POST',body:JSON.stringify({title: })})}</script>",
     "title": "Edit page",
     "formTitle": "Edit page",
     "method": "POST",
     "action": "",
+    "btnsecondary":{"url":"javascript:_delete()","text":"Delete Page"},
     "submitText": "Submit",
     "fields": [
       {
@@ -99,7 +101,7 @@
     "method": "POST",
     "action": "/api/v1/users/apply",
     "submitText": "Apply",
-    "cancelUrl": "/form/login",
+    "btnsecondary":{"url":"/login","text":"Cancel"},
     "fields": [
       {
         "name": "username",
