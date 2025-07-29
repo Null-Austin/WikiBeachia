@@ -3,3 +3,4 @@ package_lock.json
 *.db*
 getDevblogs.js
 .vscode
+*.log

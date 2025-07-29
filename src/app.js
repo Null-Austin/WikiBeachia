@@ -19,6 +19,10 @@ const forms = require('./modules/forms.js');
 const schemas = require('./modules/schemas.js');
 const { func } = require('joi');
 const { permission } = require('node:process');
+const bots = require('../wiki/bots/bot-default.js');
+const BotManager = require('../wiki/bots/bot-default.js');
+const WikiBeachiaBot = require('../wiki/bots/_bot.js');
+const { log } = require('node:console');
 
 // Simple pre run checks
 if (developer){
@@ -284,7 +288,6 @@ app.post('/api/v1/login', async (req, res) => {
     res.status(500).json({ error: 'We encountered an issue while processing your login. Please try again later.' });
   }
 });
-
 app.post('/api/v1/logout', async (req, res) => {
   try {
     if (req.user) {
@@ -611,6 +614,334 @@ app.post('/api/v1/users/:id/reset-password', async (req, res) => {
   }
 })
 
+// Bot authentication middleware
+async function authenticateBot(req, res, next) {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  
+  if (!token) {
+    return res.status(401).json({ error: 'Missing authorization token' });
+  }
+  
+  try {
+    const user = await db.users.getUserByToken(token);
+    if (!user || user.type !== 'bot') {
+      return res.status(401).json({ error: 'Invalid bot token' });
+    }
+    req.bot = user;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid or expired bot token' });
+  }
+}
+
+// Bot's API endpoints
+app.post('/api/v1/bot/login', async (req, res) => {
+  const body = req.body;
+
+  // Validate request body
+  if (!body.username || !body.clientSecret) {
+    return res.status(400).json({ error: 'Missing username or client secret' });
+  }
+
+  let { username, clientSecret } = body;
+  try{
+    let user = await db.users.getByUsername(username)
+    if ((!user) || (user.password !== clientSecret) || (user.type !== 'bot')) {
+      return res.status(401).json({ error: 'Invalid username or client secret' });
+    }
+    let token = userAuth.randomBytes()
+    await db.users.setToken(user.id, token);
+    res.json({user:user,token:token})
+  } catch (error){
+    console.error('Error during bot login:', error);
+    if (error.message === 'User not found') {
+      return res.status(401).json({ error: 'Invalid username or client secret' });
+    }
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get bot information
+app.get('/api/v1/bot/info', authenticateBot, async (req, res) => {
+  try {
+    const botInfo = {
+      id: req.bot.id,
+      username: req.bot.username,
+      display_name: req.bot.display_name,
+      role: req.bot.role,
+      account_status: req.bot.account_status,
+      created_at: req.bot.created_at
+    };
+    res.json(botInfo);
+  } catch (error) {
+    console.error('Error getting bot info:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Refresh bot token
+app.post('/api/v1/bot/refresh-token', authenticateBot, async (req, res) => {
+  try {
+    const newToken = userAuth.randomBytes();
+    await db.users.setToken(req.bot.id, newToken);
+    res.json({ token: newToken, message: 'Token refreshed successfully' });
+  } catch (error) {
+    console.error('Error refreshing bot token:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Bot logout (invalidate token)
+app.post('/api/v1/bot/logout', authenticateBot, async (req, res) => {
+  try {
+    await db.users.setToken(req.bot.id, null);
+    res.json({ message: 'Bot logged out successfully' });
+  } catch (error) {
+    console.error('Error during bot logout:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get page content
+app.get('/api/v1/bot/pages/:name', authenticateBot, async (req, res) => {
+  try {
+    const page = await db.pages.getPage(req.params.name);
+    
+    // Check if bot has permission to read the page
+    if (req.bot.role < page.permission) {
+      return res.status(403).json({ error: 'Insufficient permissions to access this page' });
+    }
+    
+    res.json({
+      id: page.id,
+      name: page.name,
+      display_name: page.display_name,
+      content: page.content,
+      permission: page.permission,
+      markdown: page.markdown,
+      created_at: page.created_at,
+      last_modified: page.last_modified
+    });
+  } catch (error) {
+    if (error.message === 'no page found') {
+      return res.status(404).json({ error: 'Page not found' });
+    }
+    console.error('Error getting page:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Create a new page
+app.post('/api/v1/bot/pages', authenticateBot, async (req, res) => {
+  const { display_name, content, permission, markdown } = req.body;
+  
+  if (!display_name || !content) {
+    return res.status(400).json({ error: 'Missing required fields: display_name and content' });
+  }
+  
+  // Check if bot has sufficient role for the page permission level
+  const pagePermission = permission || 0;
+  if (req.bot.role < pagePermission) {
+    return res.status(403).json({ error: 'Insufficient permissions to create page with this permission level' });
+  }
+  
+  const name = display_name.toLowerCase().replace(/\s+/g, '_');
+  
+  try {
+    const pageId = await db.pages.createPage(name, display_name, content);
+    
+    // Update page with additional properties if provided
+    if (permission !== undefined || markdown !== undefined) {
+      // Note: You might need to add an updatePageProperties method to db.pages
+      // For now, we'll just create with basic properties
+    }
+    
+    res.status(201).json({ 
+      message: 'Page created successfully',
+      page: { id: pageId, name, display_name, content, permission: pagePermission }
+    });
+  } catch (error) {
+    console.error('Error creating page:', error);
+    if (error.message.includes('UNIQUE constraint failed')) {
+      return res.status(409).json({ error: 'Page name already exists' });
+    }
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update an existing page
+app.put('/api/v1/bot/pages/:name', authenticateBot, async (req, res) => {
+  const { display_name, content } = req.body;
+  
+  if (!display_name || !content) {
+    return res.status(400).json({ error: 'Missing required fields: display_name and content' });
+  }
+  
+  try {
+    const page = await db.pages.getPage(req.params.name);
+    
+    // Check if bot has permission to edit the page
+    if (req.bot.role < (page.permission - 1 || 99)) {
+      return res.status(403).json({ error: 'Insufficient permissions to edit this page' });
+    }
+    
+    await db.pages.updatePage(page.id, req.params.name, display_name, content);
+    
+    res.json({ 
+      message: 'Page updated successfully',
+      page: { id: page.id, name: req.params.name, display_name, content }
+    });
+  } catch (error) {
+    if (error.message === 'no page found') {
+      return res.status(404).json({ error: 'Page not found' });
+    }
+    console.error('Error updating page:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get user information
+app.get('/api/v1/bot/users/:username', authenticateBot, async (req, res) => {
+  try {
+    // Only allow bots with admin role to get user info
+    if (req.bot.role < 100) {
+      return res.status(403).json({ error: 'Insufficient permissions to access user information' });
+    }
+    
+    const user = await db.users.getByUsername(req.params.username);
+    
+    // Return safe user information (no sensitive data)
+    res.json({
+      id: user.id,
+      username: user.username,
+      display_name: user.display_name,
+      role: user.role,
+      account_status: user.account_status,
+      type: user.type,
+      created_at: user.created_at
+    });
+  } catch (error) {
+    if (error.message === 'User not found') {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    console.error('Error getting user:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get all pages (with pagination)
+app.get('/api/v1/bot/pages', authenticateBot, async (req, res) => {
+  try {
+    const offset = parseInt(req.query.offset) || 0;
+    const limit = Math.min(parseInt(req.query.limit) || 50, 100); // Max 100 per request
+    
+    const pages = await db.pages.getAllPages();
+    
+    // Filter pages based on bot permissions
+    const accessiblePages = pages.filter(page => req.bot.role >= page.permission);
+    
+    // Apply pagination
+    const paginatedPages = accessiblePages.slice(offset, offset + limit);
+    
+    res.json({
+      pages: paginatedPages.map(page => ({
+        id: page.id,
+        name: page.name,
+        display_name: page.display_name,
+        permission: page.permission,
+        markdown: page.markdown,
+        created_at: page.created_at,
+        last_modified: page.last_modified
+      })),
+      total: accessiblePages.length,
+      offset,
+      limit
+    });
+  } catch (error) {
+    console.error('Error getting pages:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get wiki settings (read-only for bots)
+app.get('/api/v1/bot/wiki/settings', authenticateBot, async (req, res) => {
+  try {
+    // Only allow bots with admin role to access settings
+    if (req.bot.role < 100) {
+      return res.status(403).json({ error: 'Insufficient permissions to access wiki settings' });
+    }
+    
+    const settings = await db.settings.getSettings();
+    res.json(settings);
+  } catch (error) {
+    console.error('Error getting wiki settings:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Search pages by content
+app.get('/api/v1/bot/search', authenticateBot, async (req, res) => {
+  const { query, type } = req.query;
+  
+  if (!query) {
+    return res.status(400).json({ error: 'Missing search query parameter' });
+  }
+  
+  try {
+    const pages = await db.pages.getAllPages();
+    
+    // Filter pages based on bot permissions and search criteria
+    let results = pages.filter(page => {
+      if (req.bot.role < page.permission) return false;
+      
+      switch (type) {
+        case 'title':
+          return page.display_name.toLowerCase().includes(query.toLowerCase()) ||
+                 page.name.toLowerCase().includes(query.toLowerCase());
+        case 'content':
+          return page.content.toLowerCase().includes(query.toLowerCase());
+        default:
+          return page.display_name.toLowerCase().includes(query.toLowerCase()) ||
+                 page.name.toLowerCase().includes(query.toLowerCase()) ||
+                 page.content.toLowerCase().includes(query.toLowerCase());
+      }
+    });
+    
+    // Limit results to prevent overwhelming responses
+    results = results.slice(0, 50);
+    
+    res.json({
+      results: results.map(page => ({
+        id: page.id,
+        name: page.name,
+        display_name: page.display_name,
+        permission: page.permission,
+        created_at: page.created_at,
+        last_modified: page.last_modified
+      })),
+      query,
+      type: type || 'all',
+      count: results.length
+    });
+  } catch (error) {
+    console.error('Error searching pages:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Bot health check
+app.get('/api/v1/bot/health', authenticateBot, async (req, res) => {
+  res.json({
+    status: 'healthy',
+    bot: {
+      username: req.bot.username,
+      role: req.bot.role
+    },
+    timestamp: new Date().toISOString(),
+    api_version: '1.0'
+  });
+});
+
 // wiki content creation pages
 app.get('/wikian/:url', requireRole(10), (req, res, next) => {
   if (developer) {
@@ -737,8 +1068,35 @@ async function startServer() {
   try {
     await db.init(); // Wait for database initialization
     await loadSettings(); // Load settings before starting server
-    app.listen(port, () => {
+    app.listen(port, async (e) => {
+      if (e) {
+        console.error('Error starting server:', e);
+        process.exit(1);
+      }
       console.log(`Server is running on http://localhost:${port}`);
+
+      // bots
+      console.log('🤖 Initializing bots...');
+      try {
+        const HomerBot = require('../wiki/bots/server/app.js');
+        
+        // Run the bot after a short delay to ensure database is ready
+        setTimeout(async () => {
+          const homer = new HomerBot();
+          try {
+            console.log('🎯 Homer Bot starting...');
+            await homer.createTestPage();
+            console.log('✅ Homer Bot finished');
+          } catch (error) {
+            console.error('❌ Bot error:', error.message);
+          }
+        }, 1000); // 1 second delay
+        
+        console.log('✅ Bot scheduled to run');
+      } catch (error) {
+        console.error('❌ Error initializing bots:', error.message);
+      }
+      
     });
   } catch (error) {
     console.error('Failed to initialize database:', error);
