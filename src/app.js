@@ -246,15 +246,33 @@ app.post('/wiki/:name/edit', async (req, res) => {
 // static file endpoints
 app.get('/css/:page', (req, res) => {
   const page = req.params.page;
-  res.sendFile(path.join(__dirname, 'css', page));
+  res.sendFile(path.join(__dirname, 'css', page), (error) => {
+    if (error) {
+      console.warn(error);
+      res.redirect('/wiki/404');
+    }
+  });
 });
 app.get('/js/:page', (req, res) => {
   const page = req.params.page;
-  res.sendFile(path.join(__dirname, 'js', page));
+  res.sendFile(path.join(__dirname, 'js', page), (error) => {
+    if (error) {
+      console.warn(error);
+      res.redirect('/wiki/404');
+    }
+  });
 });
+app.get('/favicon.ico',(req,res)=>{
+  res.redirect('/media/icon.png')
+})
 app.get('/media/:page', (req, res) => {
   const page = req.params.page;
-  res.sendFile(path.join(__dirname, 'media', page));
+  res.sendFile(path.join(__dirname, 'media', page), (error) => {
+    if (error) {
+      console.warn(error);
+      res.redirect('/wiki/404');
+    }
+  });
 });
 
 // api endpoints
