@@ -297,6 +297,15 @@ app.get('/js/:page', (req, res) => {
     }
   });
 });
+app.get('/media/user/:page', (req, res) => {
+  const page = req.params.page;
+  res.sendFile(path.join(__dirname, 'media/user', page), (error) => {
+    if (error) {
+      console.warn(error);
+      res.redirect('/wiki/404');
+    }
+  });
+});
 app.get('/favicon.ico',(req,res)=>{
   res.redirect('/media/icon.png')
 })

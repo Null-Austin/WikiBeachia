@@ -5,3 +5,5 @@ getDevblogs.js
 .vscode
 *.log
 *.VSCodeCounter*
+src/media/user/*
+!*.gitkeep
