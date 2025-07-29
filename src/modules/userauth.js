@@ -1,11 +1,15 @@
 const crypto = require('node:crypto');
+const bcrypt = require('bcrypt');
 const db = require('./db');
 
 function hash(s){
-    return crypto.createHash('sha256').update(s).digest('hex');
+    return bcrypt.hashSync(s, 12); // Use bcrypt with cost factor 12
 }
 function randomBytes(size=32){
     return crypto.randomBytes(size).toString('hex');
+}
+async function verifyPassword(password, hashedPassword) {
+    return bcrypt.compare(password, hashedPassword);
 }
 const _userAuth = new class{
     constructor(){
@@ -31,7 +35,8 @@ const _userAuth = new class{
     async login(username, password){
         try {
             let user = await this.getUserByUsername(username);
-            if (user.password !== this.hash(password)) {
+            const isValidPassword = await verifyPassword(password, user.password);
+            if (!isValidPassword) {
                 throw new Error('Invalid username or password');
             }
             user.token = (await this.userToken(user.id, this.randomBytes())).token;

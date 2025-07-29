@@ -13,6 +13,7 @@ const _schemas = new class {
             .required(),
         password: joi.string()
             .min(8)
+            .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
             .message('Password must be at least 8 characters and include uppercase, lowercase, number, and special character')
             .required(),
         email: joi.string().min(4).email().required(),

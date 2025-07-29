@@ -11,6 +11,8 @@ const ejs = require('ejs');
 const colors = require('colors/safe');
 const cookieParser = require('cookie-parser');
 const markdownit = require('markdown-it');
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
 
 // Local modules
 const db = require('./modules/db.js');
@@ -18,11 +20,6 @@ const userAuth = require('./modules/userauth.js');
 const forms = require('./modules/forms.js');
 const schemas = require('./modules/schemas.js');
 const { func } = require('joi');
-const { permission } = require('node:process');
-const bots = require('../wiki/bots/bot-default.js');
-const BotManager = require('../wiki/bots/bot-default.js');
-const WikiBeachiaBot = require('../wiki/bots/_bot.js');
-const { log } = require('node:console');
 
 // Simple pre run checks
 if (developer){
@@ -69,8 +66,9 @@ function requireRole(minRole = 0) {
       // Store the current URL for redirect after login
       res.cookie('returnTo', req.originalUrl, {
         httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
         maxAge: 10 * 60 * 1000, // 10 minutes
-        sameSite: 'lax'
+        sameSite: 'strict'
       });
       return res.redirect('/login');
     }
@@ -78,8 +76,9 @@ function requireRole(minRole = 0) {
     if (req.user.role < minRole) {
       res.cookie('returnTo', req.originalUrl, {
         httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
         maxAge: 10 * 60 * 1000, // 10 minutes
-        sameSite: 'lax'
+        sameSite: 'strict'
       });
       return res.redirect('/login');
     }
@@ -101,7 +100,28 @@ function renderForm(res, formConfig) {
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Rate limiting for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 requests per windowMs
+  message: { error: 'Too many login attempts, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: { error: 'Too many requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // setting up middle ware
+app.use(helmet({
+  contentSecurityPolicy: false, // Disable CSP for now as it may break the app
+  crossOriginEmbedderPolicy: false
+}));
 app.engine('html', ejs.renderFile);
 app.set('view engine', 'html');
 app.set('views', path.join(__dirname, 'pages'));
@@ -183,7 +203,13 @@ app.get('/wiki/:name/edit', async (req, res) => {
   renderForm(res,formConfig)
 })
 app.post('/wiki/:name/edit', async (req, res) => {
-  let page = await db.pages.getPage(req.params.name);
+  // Input validation
+  const pageName = req.params.name;
+  if (!pageName || typeof pageName !== 'string' || pageName.length > 100) {
+    return res.status(400).json({ error: 'Invalid page name.' });
+  }
+  
+  let page = await db.pages.getPage(pageName);
   if (!page) {
     return res.status(404).redirect('/wiki/404');
   }
@@ -194,6 +220,12 @@ app.post('/wiki/:name/edit', async (req, res) => {
   if (!body || !body.name || !body.content) {
     return res.status(400).json({ error: 'Please provide both a page title and content.' });
   }
+  
+  // Validate input lengths
+  if (body.name.length > 200 || body.content.length > 100000) {
+    return res.status(400).json({ error: 'Content too long.' });
+  }
+  
   let { name, content } = body;
   let display_name = name;
   name = name.toLowerCase().replace(/\s+/g, '_');
@@ -216,6 +248,7 @@ app.get('/js/:page', (req, res) => {
 });
 
 // api endpoints
+app.use('/api/', apiLimiter); // Apply rate limiting to all API routes
 app.post('/api/v1/create-page', async (req, res) => {
   let body = req.body;
   if (!body || !body.display_name || !body.content) {
@@ -232,7 +265,7 @@ app.post('/api/v1/create-page', async (req, res) => {
       res.status(500).json({ error: 'Unable to create the page at this time. Please try again later.' });
     });
 });
-app.post('/api/v1/login', async (req, res) => {
+app.post('/api/v1/login', authLimiter, async (req, res) => {
   const body = req.body;
   if (!body || !body.username || !body.password) {
     return res.status(400).json({ error: 'Please enter both username and password.' });
@@ -250,9 +283,9 @@ app.post('/api/v1/login', async (req, res) => {
     // Set the token as an httpOnly cookie
     res.cookie('token', user.token, {
       httpOnly: true,  // Prevents XSS attacks
-      secure: false,   // Set to true in production with HTTPS
+      secure: process.env.NODE_ENV === 'production',   // Set to true in production with HTTPS
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: 'lax'  // CSRF protection
+      sameSite: 'strict'  // CSRF protection - stricter than 'lax'
     });
     
     // Clear any previous returnTo cookie
@@ -331,7 +364,7 @@ app.post('/api/v1/update-wiki-settings',async (req,res)=>{
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
-app.post('/api/v1/users/apply', async (req, res) => {
+app.post('/api/v1/users/apply', authLimiter, async (req, res) => {
   const body = req.body;
   if (!body || !body.username || !body.email || !body.reason || !body.password) {
     return res.status(400).json({ error: 'Please fill in all required fields to submit your application.' });
@@ -635,7 +668,7 @@ async function authenticateBot(req, res, next) {
 }
 
 // Bot's API endpoints
-app.post('/api/v1/bot/login', async (req, res) => {
+app.post('/api/v1/bot/login', authLimiter, async (req, res) => {
   const body = req.body;
 
   // Validate request body
@@ -1074,22 +1107,6 @@ async function startServer() {
         process.exit(1);
       }
       console.log(`Server is running on http://localhost:${port}`);
-
-      // bots
-      console.log('🤖 Initializing bots...');
-      try {
-        const HomerBot = require('../wiki/bots/server/app.js');
-        
-        // Run the bot after a short delay to ensure database is ready
-        setTimeout(async () => {
-          const homer = new HomerBot();
-        }, 1000); // 1 second delay
-        
-        console.log('✅ Bot scheduled to run');
-      } catch (error) {
-        console.error('❌ Error initializing bots:', error.message);
-      }
-      
     });
   } catch (error) {
     console.error('Failed to initialize database:', error);

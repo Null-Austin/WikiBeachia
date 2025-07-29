@@ -1,5 +1,6 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const bcrypt = require('bcrypt');
 const db_path = path.join(__dirname, '../misc/database.db');
 const db = new sqlite3.Database(db_path);
 
@@ -9,7 +10,7 @@ function randomBytes(size=32){
     return crypto.randomBytes(size).toString('hex');
 }
 function hash(s){
-    return crypto.createHash('sha256').update(s).digest('hex');
+    return bcrypt.hashSync(s, 12); // Use bcrypt with cost factor 12
 }
 const _db = new class{
     constructor(){
@@ -242,7 +243,7 @@ const _db = new class{
         }
         async getByUsername(username){
             return new Promise((res,rej)=>{
-                this.db.prepare('SELECT * FROM users WHERE username LIKE ?').get(username, (err, row) => {
+                this.db.prepare('SELECT * FROM users WHERE username = ?').get(username, (err, row) => {
                     if(err) return rej(err);
                     if(!row) return rej(new Error('User not found'));
                     res(row);
