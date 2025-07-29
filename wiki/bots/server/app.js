@@ -5,31 +5,17 @@ class HomerBot {
         // No need for API calls, we can use the database directly
     }
 
-    async createTestPage() {
-        const content = `# Test Page
-
-This is a test page created by Homer Bot.
-
-- Created: ${new Date().toISOString()}
-- Status: Active`;
-
-        try {
-            const name = 'test_page';
-            const display_name = 'Test Page';
-            
-            // Check if page already exists
-            try {
-                await db.pages.getPage(name);
-                console.log('ℹTest page already exists');
-                return;
-            } catch (error) {
-                // Page doesn't exist, create it
-            }
-            
-            await db.pages.createPage(name, display_name, content);
-            console.log('✅ Test page created');
-        } catch (error) {
-            console.error('Error creating test page:', error.message);
+    async updateHome() {
+        console.log('Updating home page...');
+        let content = `# Home Page
+        This is the updated content for the home page.`;
+        try{
+            // First get the home page to get its ID
+            const homePage = await db.pages.getPage('home');
+            await db.pages.updatePage(homePage.id, 'home', 'Home', content);
+            console.log('Home page updated');
+        } catch (error){
+            console.error('Error updating home page:', error.message);
         }
     }
 }
@@ -38,7 +24,7 @@ async function runBot() {
     const homer = new HomerBot();
     
     try {
-        await homer.createTestPage();
+        await homer.updateHome();
     } catch (error) {
         console.error('Bot error:', error.message);
     }
@@ -46,7 +32,4 @@ async function runBot() {
 
 module.exports = HomerBot;
 
-// Only run if this file is executed directly, not when required
-if (require.main === module) {
-    runBot();
-}
+runBot();

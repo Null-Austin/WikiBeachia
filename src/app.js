@@ -1083,13 +1083,6 @@ async function startServer() {
         // Run the bot after a short delay to ensure database is ready
         setTimeout(async () => {
           const homer = new HomerBot();
-          try {
-            console.log('🎯 Homer Bot starting...');
-            await homer.createTestPage();
-            console.log('✅ Homer Bot finished');
-          } catch (error) {
-            console.error('❌ Bot error:', error.message);
-          }
         }, 1000); // 1 second delay
         
         console.log('✅ Bot scheduled to run');
