@@ -1007,6 +1007,45 @@ app.get('/admin/:url', requireRole(100), (req, res, next) => {
   }
   return next();
 })
+app.get('/admin/articles',async (req,res)=>{
+  let page = Number(req.query.page) || 1;
+  let limit = 15; // Articles per page
+  let offset = (page - 1) * limit;
+
+  try {
+    // Use pages data since articles are essentially pages in this wiki system
+    let allPages = await db.pages.getAllPages();
+    let totalArticles = allPages.length;
+    let totalPages = Math.ceil(totalArticles / limit);
+    
+    // Apply pagination manually
+    let articles = allPages.slice(offset, offset + limit);
+
+    res.render('admin/articles', {
+      header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
+      articles: articles,
+      currentPage: page,
+      totalPages: totalPages,
+      totalArticles: totalArticles,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+      wiki:settings
+    });
+  } catch (error) {
+    console.error('Error fetching articles:', error);
+    res.status(500).render('admin/articles', {
+      header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
+      articles: [],
+      currentPage: 1,
+      totalPages: 0,
+      totalArticles: 0,
+      hasNextPage: false,
+      hasPrevPage: false,
+      error: 'Failed to load articles',
+      wiki:settings
+    });
+  }
+})
 app.get('/admin',(req,res)=>{
   res.redirect('/admin/dashboard');
 })

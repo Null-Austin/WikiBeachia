@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= wiki.site_name %> | Admin Articles</title>
+    <link rel="stylesheet" href="/css/theme-global.css">
+    <link rel="stylesheet" href="/css/index.css">
+    <link rel="stylesheet" href="/css/theme-regular.css">
+    <link rel="stylesheet" href="/css/md.css">
+    <script src="/js/notifications.js"></script>
+</head>
+<body>
+    <%- header %>
+    <div id="main-content">
+        <h1>Articles</h1>
+        
+        <% if (typeof error !== 'undefined') { %>
+            <div class="admin-info" style="background: rgba(248, 81, 73, 0.1); color: #d1242f;">
+                Error: <%= error %>
+            </div>
+        <% } %>
+        
+        <div class="admin-info">
+            <strong>Total Articles: <%= typeof totalArticles !== 'undefined' ? totalArticles : 0 %></strong> | 
+            Page <strong><%= typeof currentPage !== 'undefined' ? currentPage : 1 %></strong> of 
+            <strong><%= typeof totalPages !== 'undefined' ? totalPages : 1 %></strong>
+        </div>
+
+        <% if (articles && articles.length > 0) { %>
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th class="col-id">ID</th>
+                        <th class="col-title">Title</th>
+                        <th class="col-slug">Name/Slug</th>
+                        <th class="col-permission">Permission</th>
+                        <th class="col-markdown">Markdown</th>
+                        <th class="col-date">Created</th>
+                        <th class="col-date">Last Modified</th>
+                        <th class="col-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% articles.forEach(function(article) { %>
+                        <tr>
+                            <td class="col-id"><%= article.id %></td>
+                            <td class="col-title"><strong><%= article.display_name || article.name %></strong></td>
+                            <td class="col-slug"><code><%= article.name %></code></td>
+                            <td class="col-permission"><%= article.permission || 0 %></td>
+                            <td class="col-markdown"><%= article.markdown ? 'Yes' : 'No' %></td>
+                            <td class="col-date"><%= new Date(article.created_at).toLocaleDateString() %></td>
+                            <td class="col-date"><%= new Date(article.last_modified || article.created_at).toLocaleDateString() %></td>
+                            <td class="col-actions">
+                                <a href="/wiki/<%= article.name %>" target="_blank" class="admin-btn btn-view">View</a>
+                                <a href="/wiki/<%= article.name %>/edit" target="_blank" class="admin-btn btn-edit">Edit</a>
+                            </td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+            
+            <!-- Pagination -->
+            <% if (typeof totalPages !== 'undefined' && totalPages > 1) { %>
+            <div class="admin-pagination">
+                <% if (typeof hasPrevPage !== 'undefined' && hasPrevPage) { %>
+                    <a href="?page=1">&laquo; First</a>
+                    <a href="?page=<%= currentPage - 1 %>">&lsaquo; Previous</a>
+                <% } else { %>
+                    <span class="disabled">&laquo; First</span>
+                    <span class="disabled">&lsaquo; Previous</span>
+                <% } %>
+
+                <% 
+                    let startPage = Math.max(1, (currentPage || 1) - 2);
+                    let endPage = Math.min((totalPages || 1), (currentPage || 1) + 2);
+                    
+                    for (let i = startPage; i <= endPage; i++) { 
+                %>
+                    <% if (i === (currentPage || 1)) { %>
+                        <span class="current"><%= i %></span>
+                    <% } else { %>
+                        <a href="?page=<%= i %>"><%= i %></a>
+                    <% } %>
+                <% } %>
+
+                <% if (typeof hasNextPage !== 'undefined' && hasNextPage) { %>
+                    <a href="?page=<%= (currentPage || 1) + 1 %>">Next &rsaquo;</a>
+                    <a href="?page=<%= totalPages %>">Last &raquo;</a>
+                <% } else { %>
+                    <span class="disabled">Next &rsaquo;</span>
+                    <span class="disabled">Last &raquo;</span>
+                <% } %>
+            </div>
+            <% } %>
+        <% } else { %>
+            <div class="admin-info">
+                <p>No articles found.</p>
+            </div>
+        <% } %>
+    </div>
+</body>
+</html>
+    </div>
+</body>
+</html>
+    </div>
+
+    <script>
+        let isEditMode = false;
+        let originalValues = {};
+        
+        function openModifyUser(element) {
+            const userData = {
+                id: element.getAttribute('data-user-id'),
+                displayName: element.getAttribute('data-display-name'),
+                username: element.getAttribute('data-username'),
+                role: element.getAttribute('data-role'),
+                status: element.getAttribute('data-status'),
+                createdAt: element.getAttribute('data-created-at')
+            };
+            
+            // Store original values
+            originalValues = { ...userData };
+            
+            // Populate the modal with user data
+            populateUserData(userData);
+            
+            // Store current user ID for actions
+            window.currentUserId = userData.id;
+            
+            // Reset to view mode
+            setViewMode();
+            
+            // Show the modal
+            document.getElementById('modify-user').style.display = 'flex';
+        }
+        
+        function populateUserData(userData) {
+            document.querySelector('#modify-user ._username-title').textContent = userData.username;
+            document.querySelector('#modify-user ._displayname').textContent = userData.displayName;
+            document.querySelector('#modify-user ._username').textContent = userData.username;
+            document.querySelector('#modify-user ._role').textContent = userData.role;
+            document.querySelector('#modify-user ._status').textContent = userData.status;
+            document.querySelector('#modify-user ._creation-date').textContent = userData.createdAt;
+            document.querySelector('#modify-user ._id').textContent = userData.id;
+            
+            // Populate input fields with current values
+            document.querySelector('#modify-user ._displayname-input').value = userData.displayName;
+            document.querySelector('#modify-user ._username-input').value = userData.username;
+            document.querySelector('#modify-user ._role-input').value = userData.role;
+            document.querySelector('#modify-user ._status-input').value = userData.status;
+        }
+        
+        function setViewMode() {
+            isEditMode = false;
+            
+            // Show spans, hide inputs
+            document.querySelectorAll('#modify-user span:not(._username-title):not(._creation-date):not(._id)').forEach(span => {
+                span.style.display = 'inline';
+            });
+            document.querySelectorAll('#modify-user input, #modify-user select').forEach(input => {
+                input.style.display = 'none';
+            });
+            
+            // Reset button text
+            document.getElementById('edit-profile-btn').textContent = 'Edit Profile';
+        }
+        
+        function setEditMode() {
+            isEditMode = true;
+            
+            // Hide spans, show inputs (except for creation date and ID)
+            document.querySelector('#modify-user ._displayname').style.display = 'none';
+            document.querySelector('#modify-user ._username').style.display = 'none';
+            document.querySelector('#modify-user ._role').style.display = 'none';
+            document.querySelector('#modify-user ._status').style.display = 'none';
+            
+            document.querySelector('#modify-user ._displayname-input').style.display = 'inline';
+            document.querySelector('#modify-user ._username-input').style.display = 'inline';
+            document.querySelector('#modify-user ._role-input').style.display = 'inline';
+            document.querySelector('#modify-user ._status-input').style.display = 'inline';
+            
+            // Update button text
+            updateButtonText();
+            
+            // Add event listeners for change detection
+            addChangeListeners();
+        }
+        
+        function addChangeListeners() {
+            const inputs = document.querySelectorAll('#modify-user ._displayname-input, #modify-user ._username-input, #modify-user ._role-input, #modify-user ._status-input');
+            inputs.forEach(input => {
+                input.addEventListener('input', updateButtonText);
+                input.addEventListener('change', updateButtonText);
+            });
+        }
+        
+        function updateButtonText() {
+            const hasChanges = checkForChanges();
+            const button = document.getElementById('edit-profile-btn');
+            
+            if (hasChanges) {
+                button.textContent = 'Submit Changes';
+                button.className = 'btn btn-edit';
+            } else {
+                button.textContent = 'Cancel';
+                button.className = 'btn btn-delete';
+            }
+        }
+        
+        function checkForChanges() {
+            const currentValues = {
+                displayName: document.querySelector('#modify-user ._displayname-input').value,
+                username: document.querySelector('#modify-user ._username-input').value,
+                role: document.querySelector('#modify-user ._role-input').value,
+                status: document.querySelector('#modify-user ._status-input').value
+            };
+            
+            return (
+                currentValues.displayName !== originalValues.displayName ||
+                currentValues.username !== originalValues.username ||
+                currentValues.role !== originalValues.role ||
+                currentValues.status !== originalValues.status
+            );
+        }
+        
+        async function toggleEditMode() {
+            if (!isEditMode) {
+                setEditMode();
+            } else {
+                const hasChanges = checkForChanges();
+                
+                if (hasChanges) {
+                    // Submit changes
+                    await submitUserChanges();
+                } else {
+                    // Cancel editing
+                    setViewMode();
+                    // Restore original values
+                    populateUserData(originalValues);
+                }
+            }
+        }
+        
+        async function submitUserChanges() {
+            const updatedData = {
+                id: window.currentUserId,
+                displayName: document.querySelector('#modify-user ._displayname-input').value,
+                username: document.querySelector('#modify-user ._username-input').value,
+                role: document.querySelector('#modify-user ._role-input').value,
+                status: document.querySelector('#modify-user ._status-input').value
+            };
+            
+            try {
+                const response = await fetch(`/api/v1/users/${updatedData.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(updatedData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Show success message
+                    alert('User updated successfully!');
+                    
+                    // Update the original values and spans with new data
+                    originalValues.displayName = updatedData.displayName;
+                    originalValues.username = updatedData.username;
+                    originalValues.role = updatedData.role;
+                    originalValues.status = updatedData.status;
+                    
+                    populateUserData(originalValues);
+                    setViewMode();
+                    
+                    // Refresh the page to show updated data in the table
+                    window.location.reload();
+                } else {
+                    alert('Error updating user: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error updating user:', error);
+                alert('Error updating user: ' + error.message);
+            }
+        }
+        
+        function closeModifyUser() {
+            document.getElementById('modify-user').style.display = 'none';
+            window.currentUserId = null;
+            setViewMode();
+        }
+        
+        async function suspendUser(userId) {
+            if (!userId && window.currentUserId) {
+                userId = window.currentUserId;
+            }
+            if (!userId) {
+                alert('No user ID provided');
+                return;
+            }
+            
+            if (confirm('Are you sure you want to suspend/unsuspend user ID: ' + userId + '?')) {
+                try {
+                    const response = await fetch(`/api/v1/users/${userId}/suspend`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        alert(result.message);
+                        // Refresh the page to show updated status
+                        window.location.reload();
+                    } else {
+                        alert('Error: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('Error suspending/unsuspending user:', error);
+                    alert('Error: ' + error.message);
+                }
+            }
+        }
+        
+        async function resetToken() {
+            if (!window.currentUserId) {
+                alert('No user selected');
+                return;
+            }
+            
+            if (confirm('Are you sure you want to reset the token for user ID: ' + window.currentUserId + '?\nThis will force the user to log in again.')) {
+                try {
+                    const response = await fetch(`/api/v1/users/${window.currentUserId}/reset-token`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        alert(result.message);
+                    } else {
+                        alert('Error: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('Error resetting token:', error);
+                    alert('Error: ' + error.message);
+                }
+            }
+        }
+        
+        async function resetPassword() {
+            if (!window.currentUserId) {
+                alert('No user selected');
+                return;
+            }
+            
+            const newPassword = prompt('Enter new password for user ID: ' + window.currentUserId + '\n(minimum 6 characters):');
+            if (!newPassword) {
+                return; // User cancelled
+            }
+            
+            if (newPassword.length < 6) {
+                alert('Password must be at least 6 characters long');
+                return;
+            }
+            
+            if (confirm('Are you sure you want to reset the password for user ID: ' + window.currentUserId + '?\nThis will force the user to log in again.')) {
+                try {
+                    const response = await fetch(`/api/v1/users/${window.currentUserId}/reset-password`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ newPassword: newPassword })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        alert(result.message);
+                    } else {
+                        alert('Error: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('Error resetting password:', error);
+                    alert('Error: ' + error.message);
+                }
+            }
+        }
+        
+        // Close modal when clicking outside of it
+        document.getElementById('modify-user').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModifyUser();
+            }
+        });
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && document.getElementById('modify-user').style.display === 'flex') {
+                closeModifyUser();
+            }
+        });
+    </script>
+</body>
+</html>

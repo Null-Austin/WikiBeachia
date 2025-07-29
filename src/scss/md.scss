@@ -173,33 +173,62 @@ body {
         
         // Tables
         table {
-            border-collapse: separate;
-            border-spacing: 0;
-            margin: 1rem 0;
+            border-collapse: collapse;
+            font-family: Tahoma, Geneva, sans-serif;
             width: 100%;
-            border: 1px solid $md-code-text;
+            margin: 1rem 0;
+            border: 1px solid $_caput-mortuum;
             border-radius: 6px;
             overflow: hidden;
-
-            th, td {
+            
+            thead {
+            background-color: $_dun-2;
+            
+            td, th {
             padding: 0.75rem 1rem;
-            text-align: left;
-            border-right: 1px solid $md-code-text;
-            border-bottom: 1px solid $md-code-text;
-
-            &:last-child {
-                border-right: none;
-            }
-            }
-
-            th {
             font-weight: 600;
+            font-size: 0.875rem;
             color: $md-text-primary;
-            // border-bottom: 2px solid $md-code-text;
+            text-align: left;
+            border-bottom: 1px solid $_caput-mortuum;
             }
-
-            tr:last-child td {
+            }
+            
+            tbody {
+            tr {
+            background-color: $_white;
+            
+            &:nth-child(odd),&:nth-child(even) {
+            background-color: $_light-orange;
+            }
+            
+            &:hover {
+            background-color: rgba(43, 127, 255, 0.05);
+            }
+            
+            td {
+            padding: 0.75rem 1rem;
+            color: $md-text-secondary;
+            border-bottom: 1px solid $_dun;
+            
+            &:not(:last-child) {
+                border-right: 1px solid $_dun;
+            }
+            }
+            
+            &:last-child td {
             border-bottom: none;
+            }
+            }
+            }
+            
+            // Table cell alignment helpers
+            .text-center {
+            text-align: center;
+            }
+            
+            .text-right {
+            text-align: right;
             }
         }
         

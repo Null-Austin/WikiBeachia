@@ -306,29 +306,50 @@ body div#main-content ol, body #modify-user ol {
   list-style-type: decimal;
 }
 body div#main-content table, body #modify-user table {
-  border-collapse: separate;
-  border-spacing: 0;
-  margin: 1rem 0;
+  border-collapse: collapse;
+  font-family: Tahoma, Geneva, sans-serif;
   width: 100%;
-  border: 1px solid #24292f;
+  margin: 1rem 0;
+  border: 1px solid #59322f;
   border-radius: 6px;
   overflow: hidden;
 }
-body div#main-content table th, body div#main-content table td, body #modify-user table th, body #modify-user table td {
+body div#main-content table thead, body #modify-user table thead {
+  background-color: #dcc1a3;
+}
+body div#main-content table thead td, body div#main-content table thead th, body #modify-user table thead td, body #modify-user table thead th {
   padding: 0.75rem 1rem;
-  text-align: left;
-  border-right: 1px solid #24292f;
-  border-bottom: 1px solid #24292f;
-}
-body div#main-content table th:last-child, body div#main-content table td:last-child, body #modify-user table th:last-child, body #modify-user table td:last-child {
-  border-right: none;
-}
-body div#main-content table th, body #modify-user table th {
   font-weight: 600;
+  font-size: 0.875rem;
   color: #24292f;
+  text-align: left;
+  border-bottom: 1px solid #59322f;
 }
-body div#main-content table tr:last-child td, body #modify-user table tr:last-child td {
+body div#main-content table tbody tr, body #modify-user table tbody tr {
+  background-color: white;
+}
+body div#main-content table tbody tr:nth-child(odd), body div#main-content table tbody tr:nth-child(even), body #modify-user table tbody tr:nth-child(odd), body #modify-user table tbody tr:nth-child(even) {
+  background-color: #f4daba;
+}
+body div#main-content table tbody tr:hover, body #modify-user table tbody tr:hover {
+  background-color: rgba(43, 127, 255, 0.05);
+}
+body div#main-content table tbody tr td, body #modify-user table tbody tr td {
+  padding: 0.75rem 1rem;
+  color: #656d76;
+  border-bottom: 1px solid #e7cfb5;
+}
+body div#main-content table tbody tr td:not(:last-child), body #modify-user table tbody tr td:not(:last-child) {
+  border-right: 1px solid #e7cfb5;
+}
+body div#main-content table tbody tr:last-child td, body #modify-user table tbody tr:last-child td {
   border-bottom: none;
+}
+body div#main-content table .text-center, body #modify-user table .text-center {
+  text-align: center;
+}
+body div#main-content table .text-right, body #modify-user table .text-right {
+  text-align: right;
 }
 body div#main-content hr, body #modify-user hr {
   height: 1px;
