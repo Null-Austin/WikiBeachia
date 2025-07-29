@@ -23,7 +23,8 @@ const _db = new class{
                 content TEXT,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 last_modified DATETIME DEFAULT CURRENT_TIMESTAMP,
-                permission INTEGER DEFAULT 0
+                permission INTEGER DEFAULT 0,
+                markdown BOOLEAN DEFAULT 0
             );
             INSERT OR IGNORE INTO pages (name, display_name, content, permission) VALUES ('home', 'Home', 'Welcome to the home page. :)', 500);
             INSERT OR IGNORE INTO pages (name, display_name, content, permission) VALUES ('404', 'Page Not Found', 'This page does not exist. Please check the URL or return to the homepage.', 500);
