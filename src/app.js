@@ -10,6 +10,7 @@ const express = require('express');
 const ejs = require('ejs');
 const colors = require('colors/safe');
 const cookieParser = require('cookie-parser');
+const markdownit = require('markdown-it');
 
 // Local modules
 const db = require('./modules/db.js');
@@ -138,13 +139,14 @@ if (developer){
 }
 
 // dynamic endpoints
+const md = new markdownit();
 app.get('/wiki/:name', async (req, res) => {
   try {
     let page = await db.pages.getPage(req.params.name)
     page.url = req.originalUrl
     res.render('wiki',{
       'header':fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
-      'content':page.content,
+      'content':md.render(page.content),
       permission: page.permission || 100,
       'title': page.display_name || page.name,
       wiki:settings,
