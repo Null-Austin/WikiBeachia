@@ -592,6 +592,24 @@ app.put('/api/v1/users/:id', async (req, res) => {
   }
 })
 
+let last_time = 0
+app.post('/api/v1/server/shutdown',async (req,res)=>{
+  if (!req.user || req.role < 500){
+    return res.status(403).json({"error":"Hey, RUDE.",message:"Wow, yk what? un authorized access is illegal under 18 U.S. Code § 1030. So, we just alerted the NSA. Get on my level script kiddie."}) // will it spook anyone???
+  }
+  let _Date = new Date
+  let _time = _Date.getTime()
+
+  if ((_time-30000)>last_time){
+    last_time = _time
+    return res.status(409).json({"error":"Please click me again in the next 30 seconds to succeed in shutdown"})
+  }
+  res.status(200).json({'message':"Shutting down, good night."})
+  setTimeout(function(){
+    process.exit()
+  },3000)
+})
+
 // Suspend/Unsuspend user endpoint
 app.post('/api/v1/users/:id/suspend', async (req, res) => {
   if (!req.user || req.user.role < 100) {
