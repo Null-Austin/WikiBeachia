@@ -252,6 +252,10 @@ app.get('/js/:page', (req, res) => {
   const page = req.params.page;
   res.sendFile(path.join(__dirname, 'js', page));
 });
+app.get('/media/:page', (req, res) => {
+  const page = req.params.page;
+  res.sendFile(path.join(__dirname, 'media', page));
+});
 
 // api endpoints
 app.use('/api/', apiLimiter); // Apply rate limiting to all API routes
