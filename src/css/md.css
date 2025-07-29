@@ -359,9 +359,11 @@ body div#main-content hr, body #modify-user hr {
 }
 body div#main-content img, body #modify-user img {
   max-width: 100%;
+  max-height: 20%;
   height: auto;
   border-radius: 6px;
-  margin: 1rem 0;
+  margin: 1rem auto;
+  display: block;
 }
 body div#main-content input[type=checkbox], body #modify-user input[type=checkbox] {
   margin-right: 0.5rem;

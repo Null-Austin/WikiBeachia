@@ -243,9 +243,11 @@ body {
         // Images
         img {
             max-width: 100%;
+            max-height: 20%;
             height: auto;
             border-radius: 6px;
-            margin: 1rem 0;
+            margin: 1rem auto;
+            display: block;
         }
         
         // Task lists
