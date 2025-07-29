@@ -144,10 +144,9 @@ app.get('/wiki/:name', async (req, res) => {
   try {
     let page = await db.pages.getPage(req.params.name)
     page.url = req.originalUrl
-    let markdownEnabled = page.markdown || false;
     res.render('wiki',{
       'header':fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
-      'content':markdownEnabled ? md.render(page.content) : page.content,
+      'content':md.render(page.content),
       permission: page.permission || 100,
       'title': page.display_name || page.name,
       wiki:settings,
