@@ -34,10 +34,10 @@
                         <th class="col-id">ID</th>
                         <th class="col-title">Title</th>
                         <th class="col-slug">Name/Slug</th>
-                        <th class="col-permission">Permission</th>
-                        <th class="col-markdown">Markdown</th>
+                        <!-- <th class="col-permission">Permission</th> -->
+                        <!-- <th class="col-markdown">Markdown</th> -->
                         <th class="col-date">Created</th>
-                        <th class="col-date">Last Modified</th>
+                        <!-- <th class="col-date">Last Modified</th> -->
                         <th class="col-actions">Actions</th>
                     </tr>
                 </thead>
@@ -47,13 +47,15 @@
                             <td class="col-id"><%= article.id %></td>
                             <td class="col-title"><strong><%= article.display_name || article.name %></strong></td>
                             <td class="col-slug"><code><%= article.name %></code></td>
-                            <td class="col-permission"><%= article.permission || 0 %></td>
-                            <td class="col-markdown"><%= article.markdown ? 'Yes' : 'No' %></td>
+                            <!-- <td class="col-permission"><%= article.permission || 0 %></td> -->
+                            <!-- <td class="col-markdown"><%= article.markdown ? 'Yes' : 'No' %></td> -->
                             <td class="col-date"><%= new Date(article.created_at).toLocaleDateString() %></td>
-                            <td class="col-date"><%= new Date(article.last_modified || article.created_at).toLocaleDateString() %></td>
+                            <!-- <td class="col-date"><%= new Date(article.last_modified || article.created_at).toLocaleDateString() %></td> -->
                             <td class="col-actions">
                                 <a href="/wiki/<%= article.name %>" target="_blank" class="admin-btn btn-view">View</a>
-                                <a href="/wiki/<%= article.name %>/edit" target="_blank" class="admin-btn btn-edit">Edit</a>
+                                <% if (admin) { %>
+                                 <a href="/wiki/<%= article.name %>/edit" target="_blank" class="admin-btn btn-edit">Edit</a>
+                                <% } %>
                             </td>
                         </tr>
                     <% }); %>

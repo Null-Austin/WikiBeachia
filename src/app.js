@@ -149,6 +149,41 @@ app.get('/register',(req,res)=>{
   const formConfig = forms.getFormConfig('register');
   renderForm(res, req, formConfig);
 })
+app.get('/articles',async (req,res)=>{
+  let admin = false
+  if (req.query.admin){
+    admin = true
+  }
+  // console.log(admin)
+  let page = Number(req.query.page) || 1;
+  let limit = 15; // Articles per page
+  let offset = (page - 1) * limit;
+
+  try {
+    // Use pages data since articles are essentially pages in this wiki system
+    let allPages = await db.pages.getAllPages();
+    let totalArticles = allPages.length;
+    let totalPages = Math.ceil(totalArticles / limit);
+    
+    // Apply pagination manually
+    let articles = allPages.slice(offset, offset + limit);
+
+    res.render('articles', {
+      header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
+      articles: articles,
+      currentPage: page,
+      totalPages: totalPages,
+      totalArticles: totalArticles,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+      wiki:settings,
+      admin:admin
+    });
+  } catch (error) {
+    console.error('Error fetching articles:', error);
+    res.status(500).redirect('/wiki/500')
+  }
+})
 
 // Generic form route for future forms
 if (developer){
@@ -1080,43 +1115,7 @@ app.get('/admin/:url', requireRole(100), (req, res, next) => {
   return next();
 })
 app.get('/admin/articles',async (req,res)=>{
-  let page = Number(req.query.page) || 1;
-  let limit = 15; // Articles per page
-  let offset = (page - 1) * limit;
-
-  try {
-    // Use pages data since articles are essentially pages in this wiki system
-    let allPages = await db.pages.getAllPages();
-    let totalArticles = allPages.length;
-    let totalPages = Math.ceil(totalArticles / limit);
-    
-    // Apply pagination manually
-    let articles = allPages.slice(offset, offset + limit);
-
-    res.render('admin/articles', {
-      header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
-      articles: articles,
-      currentPage: page,
-      totalPages: totalPages,
-      totalArticles: totalArticles,
-      hasNextPage: page < totalPages,
-      hasPrevPage: page > 1,
-      wiki:settings
-    });
-  } catch (error) {
-    console.error('Error fetching articles:', error);
-    res.status(500).render('admin/articles', {
-      header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
-      articles: [],
-      currentPage: 1,
-      totalPages: 0,
-      totalArticles: 0,
-      hasNextPage: false,
-      hasPrevPage: false,
-      error: 'Failed to load articles',
-      wiki:settings
-    });
-  }
+  res.redirect('/articles?admin=true')
 })
 app.get('/admin',(req,res)=>{
   res.redirect('/admin/dashboard');
@@ -1195,6 +1194,25 @@ app.get('/admin/applications',async (req,res)=>{
   }
 
 })
+
+// Handle ECONNABORTED and other errors
+app.use((err, req, res, next) => {
+  if (err) {
+    // Handle connection aborted error
+    if (err.code === 'ECONNABORTED' || err.code === 'ECONNRESET') {
+      console.warn(`Connection aborted/reset for ${req.method} ${req.url}`);
+      return;
+    }
+    // Log other errors
+    console.error('Express error:', err);
+    // Only send error response if headers haven't been sent and connection is still alive
+    if (!res.headersSent && !res.writableEnded) {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+    return;
+  }
+  next();
+});
 
 // error handling
 app.use((req,res,next)=>{
