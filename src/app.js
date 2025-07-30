@@ -17,6 +17,7 @@ const markdownit = require('markdown-it')
   const markdownitlazyload = require("@mdit/plugin-img-lazyload");
   const markdownitimgsize = require("@mdit/plugin-img-size");
   const markdownitmathjax = require("@mdit/plugin-mathjax");
+  const markdownitalert = require('@mdit/plugin-alert')
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const multer = require('multer');
@@ -220,6 +221,7 @@ const md = new markdownit();
 md.use(markdownitfootnote)
 md.use(markdownitimgsize.obsidianImgSize)
 md.use(markdownitlazyload.imgLazyload)
+md.use(markdownitalert.alert)
 const mathjaxInstance = markdownitmathjax.createMathjaxInstance()
 const mdIt = md.use(markdownitmathjax.mathjax, mathjaxInstance);
 

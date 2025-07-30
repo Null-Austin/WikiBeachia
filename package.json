@@ -42,6 +42,7 @@
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {
+    "@mdit/plugin-alert": "^0.22.2",
     "@mdit/plugin-img-lazyload": "^0.22.1",
     "@mdit/plugin-img-size": "^0.22.2",
     "@mdit/plugin-mathjax": "^0.23.1"

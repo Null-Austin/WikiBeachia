@@ -188,6 +188,40 @@ body div#main-content textarea, body #modify-user textarea {
   border: 1.1px solid #24292f;
   border-radius: 5px;
 }
+body div#main-content .markdown-alert, body #modify-user .markdown-alert {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background-color: #3c3c91;
+  margin: 1rem 0;
+  border-left: 5px solid #6c6cff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+body div#main-content .markdown-alert *, body #modify-user .markdown-alert * {
+  color: #fff;
+  text-align: left;
+}
+body div#main-content .markdown-alert .markdown-alert-title, body #modify-user .markdown-alert .markdown-alert-title {
+  font-weight: 700;
+  color: #aeaec9;
+  font-size: 1.1rem;
+  margin-bottom: 0.25rem;
+}
+body div#main-content .markdown-alert-warning, body #modify-user .markdown-alert-warning {
+  background-color: #913c3c;
+  border-left: 5px solid #e16262;
+}
+body div#main-content .markdown-alert-warning *, body #modify-user .markdown-alert-warning * {
+  color: #fff;
+  text-align: left;
+}
+body div#main-content .markdown-alert-warning .markdown-alert-title, body #modify-user .markdown-alert-warning .markdown-alert-title {
+  font-weight: 700;
+  color: #e9a2a2;
+  font-size: 1.1rem;
+  margin-bottom: 0.25rem;
+}
 body div#main-content h1, body div#main-content h2, body div#main-content h3, body div#main-content h4, body div#main-content h5, body div#main-content h6, body #modify-user h1, body #modify-user h2, body #modify-user h3, body #modify-user h4, body #modify-user h5, body #modify-user h6 {
   margin-top: 1.5em;
   margin-bottom: 0.5em;

@@ -9,6 +9,46 @@ body {
             border: 1.1px solid #24292f;
             border-radius: 5px;
         }
+        // Markdown alert styles
+        .markdown-alert {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            background-color: #3c3c91;
+            margin: 1rem 0;
+            border-left: 5px solid #6c6cff;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+
+            * {
+            color: #fff;
+            text-align: left;
+            }
+
+            .markdown-alert-title {
+            font-weight: 700;
+            color: #aeaec9;
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+            }
+        }
+
+        .markdown-alert-warning {
+            background-color: #913c3c;
+            border-left: 5px solid #e16262;
+
+            * {
+            color: #fff;
+            text-align: left;
+            }
+
+            .markdown-alert-title {
+            font-weight: 700;
+            color: #e9a2a2;
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+            }
+        }
         // Headers
         h1, h2, h3, h4, h5, h6 {
             margin-top: 1.5em;
