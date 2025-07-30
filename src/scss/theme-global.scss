@@ -5,18 +5,33 @@ body{
     margin-top: 10px;
 
     // header
-    div#header{
+    div#header {
         width: 68%;
+        min-width: 800px; // Match main-content's max-width
         margin: 0 auto;
         padding: 10px;
 
+        @media screen and (max-width: 800px) {
+            min-width: 0; // Allow shrinking on small screens
+        }
         @media screen and (max-width: 768px) {
-            width: 92%;
+            width: 100%;
             padding: 8px;
             margin-top: 5px;
         }
     }
+    div#main-content {
+        line-height: 1.6;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem;
 
+        @media screen and (max-width: 768px) {
+            width: 100%;
+            padding: 1rem;
+            margin: 0.5rem auto;
+        }
+    }
     //font
     font-family: "Nunito Sans", sans-serif;
         font-optical-sizing: auto;

@@ -9,14 +9,33 @@ body {
 }
 body div#header {
   width: 68%;
+  min-width: 800px;
   margin: 0 auto;
   padding: 10px;
 }
+@media screen and (max-width: 800px) {
+  body div#header {
+    min-width: 0;
+  }
+}
 @media screen and (max-width: 768px) {
   body div#header {
-    width: 92%;
+    width: 100%;
     padding: 8px;
     margin-top: 5px;
+  }
+}
+body div#main-content {
+  line-height: 1.6;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+@media screen and (max-width: 768px) {
+  body div#main-content {
+    width: 100%;
+    padding: 1rem;
+    margin: 0.5rem auto;
   }
 }
 body p, body span {
