@@ -76,14 +76,22 @@ body {
             }
         }
         color: $_black-olive;
-        border-radius: clamp(4px, 1vw, 8px);
-        margin: clamp(0.5rem, 2.5vw, 1rem) auto;
-        max-width: min(800px, 95%);
-        padding: clamp(1rem, 5vw, 2rem);
-        textarea {
-            background-color: #423D38ff;
-            color: white;
-            border: 1.1px solid #24292f;
+        border-radius: 8px;
+        margin: 1rem auto;
+        max-width: 800px;
+        padding: 2rem;
+
+        @media screen and (max-width: 768px) {
+            border-radius: 4px;
+            margin: 0.5rem auto;
+            max-width: 92%;
+            padding: 1rem;
+            
+            textarea {
+                background-color: #423D38ff;
+                color: white;
+                border: 1.1px solid #24292f;
+            }
         }
     }
     div#main-content, div#header {

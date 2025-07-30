@@ -619,5 +619,47 @@ body {
         
         // Legacy support for existing .create-post-form class
         // All styling is now handled by the universal form rules above
+
+        @media screen and (max-width: 768px) {
+            // Headers
+            h1 { font-size: 1.75rem; }
+            h2 { font-size: 1.5rem; }
+            h3 { font-size: 1.25rem; }
+            h4 { font-size: 1.1rem; }
+            h5, h6 { font-size: 1rem; }
+
+            // Lists
+            ul, ol {
+                padding-left: 1.5rem;
+            }
+
+            // Tables
+            table {
+                display: block;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                
+                td, th {
+                    padding: 0.5rem 0.75rem;
+                }
+            }
+
+            // Images
+            img {
+                margin: 0.75rem auto;
+            }
+
+            // Code blocks
+            pre {
+                padding: 0.75rem;
+                margin: 0.75rem 0;
+            }
+
+            // Blockquotes
+            blockquote {
+                padding: 0 0.75rem;
+                margin: 0.75rem 0;
+            }
+        }
     }
 }

@@ -3,10 +3,10 @@ body {
 }
 body div#main-content {
   color: #423d38;
-  border-radius: clamp(4px, 1vw, 8px);
-  margin: clamp(0.5rem, 2.5vw, 1rem) auto;
-  max-width: min(800px, 95%);
-  padding: clamp(1rem, 5vw, 2rem);
+  border-radius: 8px;
+  margin: 1rem auto;
+  max-width: 800px;
+  padding: 2rem;
 }
 body div#main-content .application button {
   transition: all 0.25s;
@@ -19,10 +19,18 @@ body div#main-content .application button:hover {
   background-color: rgb(17.5, 111.6037735849, 255);
   border-color: rgb(17.5, 111.6037735849, 255);
 }
-body div#main-content textarea {
-  background-color: #423d38;
-  color: white;
-  border: 1.1px solid #24292f;
+@media screen and (max-width: 768px) {
+  body div#main-content {
+    border-radius: 4px;
+    margin: 0.5rem auto;
+    max-width: 92%;
+    padding: 1rem;
+  }
+  body div#main-content textarea {
+    background-color: #423d38;
+    color: white;
+    border: 1.1px solid #24292f;
+  }
 }
 body div#main-content, body div#header {
   background-color: #e7cfb5;

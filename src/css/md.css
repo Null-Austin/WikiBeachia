@@ -3,10 +3,10 @@ body {
 }
 body div#main-content {
   color: #423d38;
-  border-radius: clamp(4px, 1vw, 8px);
-  margin: clamp(0.5rem, 2.5vw, 1rem) auto;
-  max-width: min(800px, 95%);
-  padding: clamp(1rem, 5vw, 2rem);
+  border-radius: 8px;
+  margin: 1rem auto;
+  max-width: 800px;
+  padding: 2rem;
 }
 body div#main-content .application button {
   transition: all 0.25s;
@@ -19,10 +19,18 @@ body div#main-content .application button:hover {
   background-color: rgb(17.5, 111.6037735849, 255);
   border-color: rgb(17.5, 111.6037735849, 255);
 }
-body div#main-content textarea {
-  background-color: #423d38;
-  color: white;
-  border: 1.1px solid #24292f;
+@media screen and (max-width: 768px) {
+  body div#main-content {
+    border-radius: 4px;
+    margin: 0.5rem auto;
+    max-width: 92%;
+    padding: 1rem;
+  }
+  body div#main-content textarea {
+    background-color: #423d38;
+    color: white;
+    border: 1.1px solid #24292f;
+  }
 }
 body div#main-content, body div#header {
   background-color: #e7cfb5;
@@ -731,4 +739,43 @@ body div#main-content form .form-message.info, body #modify-user form .form-mess
   background-color: rgba(9, 105, 218, 0.1);
   color: #0969da;
   border: 1px solid rgba(9, 105, 218, 0.2);
+}
+@media screen and (max-width: 768px) {
+  body div#main-content h1, body #modify-user h1 {
+    font-size: 1.75rem;
+  }
+  body div#main-content h2, body #modify-user h2 {
+    font-size: 1.5rem;
+  }
+  body div#main-content h3, body #modify-user h3 {
+    font-size: 1.25rem;
+  }
+  body div#main-content h4, body #modify-user h4 {
+    font-size: 1.1rem;
+  }
+  body div#main-content h5, body div#main-content h6, body #modify-user h5, body #modify-user h6 {
+    font-size: 1rem;
+  }
+  body div#main-content ul, body div#main-content ol, body #modify-user ul, body #modify-user ol {
+    padding-left: 1.5rem;
+  }
+  body div#main-content table, body #modify-user table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  body div#main-content table td, body div#main-content table th, body #modify-user table td, body #modify-user table th {
+    padding: 0.5rem 0.75rem;
+  }
+  body div#main-content img, body #modify-user img {
+    margin: 0.75rem auto;
+  }
+  body div#main-content pre, body #modify-user pre {
+    padding: 0.75rem;
+    margin: 0.75rem 0;
+  }
+  body div#main-content blockquote, body #modify-user blockquote {
+    padding: 0 0.75rem;
+    margin: 0.75rem 0;
+  }
 }

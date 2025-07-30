@@ -10,7 +10,14 @@ body {
 body div#header {
   width: 68%;
   margin: 0 auto;
-  padding: clamp(8px, 2.5vw, 10px);
+  padding: 10px;
+}
+@media screen and (max-width: 768px) {
+  body div#header {
+    width: 92%;
+    padding: 8px;
+    margin-top: 5px;
+  }
 }
 body p, body span {
   font-weight: 400;
