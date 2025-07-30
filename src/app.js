@@ -16,6 +16,7 @@ const markdownit = require('markdown-it')
   const markdownitfootnote = require('markdown-it-footnote')
   const markdownitlazyload = require("@mdit/plugin-img-lazyload");
   const markdownitimgsize = require("@mdit/plugin-img-size");
+  const markdownitmathjax = require("@mdit/plugin-mathjax");
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const multer = require('multer');
@@ -28,6 +29,7 @@ const userAuth = require('./modules/userauth.js');
 const forms = require('./modules/forms.js');
 const schemas = require('./modules/schemas.js');
 const { func, date } = require('joi');
+const { Interface } = require('node:readline');
 
 // Simple pre run checks
 if (developer){
@@ -218,6 +220,8 @@ const md = new markdownit();
 md.use(markdownitfootnote)
 md.use(markdownitimgsize.obsidianImgSize)
 md.use(markdownitlazyload.imgLazyload)
+const mathjaxInstance = markdownitmathjax.createMathjaxInstance()
+const mdIt = md.use(markdownitmathjax.mathjax, mathjaxInstance);
 
 // dynamic endpoints
 app.get('/wiki/:name', async (req, res) => {
@@ -225,9 +229,11 @@ app.get('/wiki/:name', async (req, res) => {
     let page = await db.pages.getPage(req.params.name)
     page.url = req.originalUrl
     let markdownEnabled = page.markdown || false;
+    let content = !markdownEnabled ? md.render(page.content) : page.content
+    let style = mathjaxInstance.outputStyle()
     res.render('wiki',{
-      'header':fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
-      'content':!markdownEnabled ? md.render(page.content) : page.content,
+      'header':`${fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8')} <style>${style}</style>`,
+      'content':content,
       permission: page.permission || 100,
       'title': page.display_name || page.name,
       wiki:settings,
