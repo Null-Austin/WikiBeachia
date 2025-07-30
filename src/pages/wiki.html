@@ -12,7 +12,7 @@
     <meta property="og:site_name" content="<%= wiki.site_name %>">
     <meta property="og:type" content="article">
     <meta property="og:description" content="<%= (() => { const desc = content.replace(/<[^>]*>/g, ''); return desc.length > 200 ? desc.substring(0, 200) + '...' : desc; })() %>">
-    <meta property="og:image" content="<%= wiki.image || '/default-og-image.png' %>">
+    <meta property="og:image" content="<%= '/favicon.ico' %>">
 </head>
 <body>
     <%- header %>
