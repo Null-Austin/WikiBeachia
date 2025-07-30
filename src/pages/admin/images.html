@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= wiki.site_name %> | Admin Images</title>
+    <link rel="stylesheet" href="/css/theme-global.css">
+    <link rel="stylesheet" href="/css/index.css">
+    <link rel="stylesheet" href="/css/theme-regular.css">
+    <link rel="stylesheet" href="/css/md.css">
+    <script src="/js/notifications.js"></script>
+    <style>
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+            gap: 10px;
+        }
+        .pagination a, .pagination span {
+            padding: 8px 12px;
+            text-decoration: none;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            color: #333;
+        }
+        .pagination a:hover {
+            background-color: #f5f5f5;
+        }
+        .pagination .current {
+            background-color: #007cba;
+            color: white;
+            border-color: #007cba;
+        }
+        .pagination .disabled {
+            color: #999;
+            cursor: not-allowed;
+        }
+        .image-info {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+        .role-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        .btn {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+            text-decoration: none;
+            display: inline-block;
+            color: white;
+            font-weight: bold;
+        }
+        .btn-edit {
+            background-color: #007cba;
+            color: white;
+        }
+        .btn-delete {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.8;
+        }
+
+        #modify-image{
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 100;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        #modify-image>div{
+            background-color: rgb(224, 224, 224);
+            width: 50%;
+            max-width: 600px;
+            min-width: 400px;
+            height: auto;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 25px;
+            border: 2px rgb(39, 39, 39) solid;
+            border-radius: 5px;
+        }
+        @media (max-width: 768px) {
+            #modify-image>div {
+                width: 90%;
+                min-width: unset;
+                margin: 10px;
+            }
+        }
+        #modify-image>div>.btn{
+            background-color: #007cba;
+            color: white;
+            transition: .2s;
+            margin: 5px 5px 5px 0;
+        }
+        #modify-image>div>.btn:hover{
+            opacity: 0.8;
+        }
+        #modify-image>div>.btn-delete{
+            background-color: #dc3545;
+        }
+        #modify-image input, #modify-image select {
+            padding: 4px 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            width: auto;
+            min-width: 150px;
+        }
+        #modify-image input:focus, #modify-image select:focus {
+            outline: none;
+            border-color: #007cba;
+            box-shadow: 0 0 3px rgba(0, 124, 186, 0.3);
+        }
+        .photo{
+            width: 500px;
+            max-height: 500px;
+        }
+    </style>
+</head>
+<body>
+    <div id="modify-image">
+        <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h1>Modify <b class="_imagename-title"></b></h1>
+                <button class="btn btn-delete" onclick="closeModifyImage()" style="background-color: #6c757d;">✕ Close</button>
+            </div>
+            <p><b>Display Name:</b> 
+                <span class="_displayname"></span>
+                <input type="text" class="_displayname-input" style="display: none;" />
+            </p>
+            <p><b>Imagename:</b> 
+                <span class="_imagename"></span>
+                <input type="text" class="_imagename-input" style="display: none;" />
+            </p>
+            <p><b>Role:</b> 
+                <span class="_role"></span>
+                <select class="_role-input" style="display: none;">
+                    <option value="0">Image</option>
+                    <option value="50">Moderator</option>
+                    <option value="100">Admin</option>
+                </select>
+            </p>
+            <p><b>Status:</b> 
+                <span class="_status"></span>
+                <select class="_status-input" style="display: none;">
+                    <option value="active">Active</option>
+                    <option value="suspended">Suspended</option>
+                    <option value="pending">Pending</option>
+                    <option value="null">Null</option>
+                </select>
+            </p>
+            <p><b>Creation date:</b> <span class="_creation-date"></span></p>
+            <p><b>ID:</b> <span class="_id"></span></p>
+            <h2>Profile page</h2>
+            <a href="javascript:void(0)" class="btn btn-edit" id="edit-profile-btn" onclick="toggleEditMode()">Edit Profile</a>
+            <h2>Immediate actions</h2>
+            <a href="javascript:void(0)" class="btn btn-delete" onclick="suspendImage()">Suspend / Unsuspend</a>
+            <a href="javascript:void(0)" class="btn btn-edit" onclick="resetToken()">Reset Token</a>
+            <a href="javascript:void(0)" class="btn btn-edit" onclick="resetPassword()">Reset Password</a>
+        </div>  
+    </div>
+    <%- header %>
+    <div id="main-content">
+        <h1>Images</h1>
+        
+        <% if (typeof error !== 'undefined') { %>
+            <div style="color: red; text-align: center; margin: 20px 0;">
+                Error: <%= error %>
+            </div>
+        <% } %>
+        
+        <div class="image-info">
+            <p>Total Images: <strong><%= typeof totalImages !== 'undefined' ? totalImages : 0 %></strong> | Page <strong><%= typeof currentPage !== 'undefined' ? currentPage : 1 %></strong> of <strong><%= typeof totalPages !== 'undefined' ? totalPages : 1 %></strong></p>
+        </div>
+
+        <% if (images && images.length > 0) { %>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Filename</th>
+                        <th>Image</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% images.forEach(function(image) { %>
+                        <tr>
+                            <td><%= image.id %></td>
+                            <td><%= image.display_name || image.imagename %></td>
+                            <td><img class="photo" src="http://localhost:3000/media/image/pripyat-1.jpg" alt=""></td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+            
+            <!-- Pagination -->
+            <% if (typeof totalPages !== 'undefined' && totalPages > 1) { %>
+            <div class="pagination">
+                <% if (typeof hasPrevPage !== 'undefined' && hasPrevPage) { %>
+                    <a href="?page=1">&laquo; First</a>
+                    <a href="?page=<%= currentPage - 1 %>">&lsaquo; Previous</a>
+                <% } else { %>
+                    <span class="disabled">&laquo; First</span>
+                    <span class="disabled">&lsaquo; Previous</span>
+                <% } %>
+
+                <% 
+                    let startPage = Math.max(1, (currentPage || 1) - 2);
+                    let endPage = Math.min((totalPages || 1), (currentPage || 1) + 2);
+                    
+                    for (let i = startPage; i <= endPage; i++) { 
+                %>
+                    <% if (i === (currentPage || 1)) { %>
+                        <span class="current"><%= i %></span>
+                    <% } else { %>
+                        <a href="?page=<%= i %>"><%= i %></a>
+                    <% } %>
+                <% } %>
+
+                <% if (typeof hasNextPage !== 'undefined' && hasNextPage) { %>
+                    <a href="?page=<%= (currentPage || 1) + 1 %>">Next &rsaquo;</a>
+                    <a href="?page=<%= totalPages %>">Last &raquo;</a>
+                <% } else { %>
+                    <span class="disabled">Next &rsaquo;</span>
+                    <span class="disabled">Last &raquo;</span>
+                <% } %>
+            </div>
+            <% } %>
+        <% } else { %>
+            <div style="text-align: center; margin: 40px 0;">
+                <p>No images found.</p>
+            </div>
+        <% } %>
+    </div>
+
+    <script>
+        let isEditMode = false;
+        let originalValues = {};
+        
+        function openModifyImage(element) {
+            const imageData = {
+                id: element.getAttribute('data-image-id'),
+                displayName: element.getAttribute('data-display-name'),
+                imagename: element.getAttribute('data-imagename'),
+                role: element.getAttribute('data-role'),
+                status: element.getAttribute('data-status'),
+                createdAt: element.getAttribute('data-created-at')
+            };
+            
+            // Store original values
+            originalValues = { ...imageData };
+            
+            // Populate the modal with image data
+            populateImageData(imageData);
+            
+            // Store current image ID for actions
+            window.currentImageId = imageData.id;
+            
+            // Reset to view mode
+            setViewMode();
+            
+            // Show the modal
+            document.getElementById('modify-image').style.display = 'flex';
+        }
+        
+        function populateImageData(imageData) {
+            document.querySelector('#modify-image ._imagename-title').textContent = imageData.imagename;
+            document.querySelector('#modify-image ._displayname').textContent = imageData.displayName;
+            document.querySelector('#modify-image ._imagename').textContent = imageData.imagename;
+            document.querySelector('#modify-image ._role').textContent = imageData.role;
+            document.querySelector('#modify-image ._status').textContent = imageData.status;
+            document.querySelector('#modify-image ._creation-date').textContent = imageData.createdAt;
+            document.querySelector('#modify-image ._id').textContent = imageData.id;
+            
+            // Populate input fields with current values
+            document.querySelector('#modify-image ._displayname-input').value = imageData.displayName;
+            document.querySelector('#modify-image ._imagename-input').value = imageData.imagename;
+            document.querySelector('#modify-image ._role-input').value = imageData.role;
+            document.querySelector('#modify-image ._status-input').value = imageData.status;
+        }
+        
+        function setViewMode() {
+            isEditMode = false;
+            
+            // Show spans, hide inputs
+            document.querySelectorAll('#modify-image span:not(._imagename-title):not(._creation-date):not(._id)').forEach(span => {
+                span.style.display = 'inline';
+            });
+            document.querySelectorAll('#modify-image input, #modify-image select').forEach(input => {
+                input.style.display = 'none';
+            });
+            
+            // Reset button text
+            document.getElementById('edit-profile-btn').textContent = 'Edit Profile';
+        }
+        
+        function setEditMode() {
+            isEditMode = true;
+            
+            // Hide spans, show inputs (except for creation date and ID)
+            document.querySelector('#modify-image ._displayname').style.display = 'none';
+            document.querySelector('#modify-image ._imagename').style.display = 'none';
+            document.querySelector('#modify-image ._role').style.display = 'none';
+            document.querySelector('#modify-image ._status').style.display = 'none';
+            
+            document.querySelector('#modify-image ._displayname-input').style.display = 'inline';
+            document.querySelector('#modify-image ._imagename-input').style.display = 'inline';
+            document.querySelector('#modify-image ._role-input').style.display = 'inline';
+            document.querySelector('#modify-image ._status-input').style.display = 'inline';
+            
+            // Update button text
+            updateButtonText();
+            
+            // Add event listeners for change detection
+            addChangeListeners();
+        }
+        
+        function addChangeListeners() {
+            const inputs = document.querySelectorAll('#modify-image ._displayname-input, #modify-image ._imagename-input, #modify-image ._role-input, #modify-image ._status-input');
+            inputs.forEach(input => {
+                input.addEventListener('input', updateButtonText);
+                input.addEventListener('change', updateButtonText);
+            });
+        }
+        
+        function updateButtonText() {
+            const hasChanges = checkForChanges();
+            const button = document.getElementById('edit-profile-btn');
+            
+            if (hasChanges) {
+                button.textContent = 'Submit Changes';
+                button.className = 'btn btn-edit';
+            } else {
+                button.textContent = 'Cancel';
+                button.className = 'btn btn-delete';
+            }
+        }
+        
+        function checkForChanges() {
+            const currentValues = {
+                displayName: document.querySelector('#modify-image ._displayname-input').value,
+                imagename: document.querySelector('#modify-image ._imagename-input').value,
+                role: document.querySelector('#modify-image ._role-input').value,
+                status: document.querySelector('#modify-image ._status-input').value
+            };
+            
+            return (
+                currentValues.displayName !== originalValues.displayName ||
+                currentValues.imagename !== originalValues.imagename ||
+                currentValues.role !== originalValues.role ||
+                currentValues.status !== originalValues.status
+            );
+        }
+        
+        async function toggleEditMode() {
+            if (!isEditMode) {
+                setEditMode();
+            } else {
+                const hasChanges = checkForChanges();
+                
+                if (hasChanges) {
+                    // Submit changes
+                    await submitImageChanges();
+                } else {
+                    // Cancel editing
+                    setViewMode();
+                    // Restore original values
+                    populateImageData(originalValues);
+                }
+            }
+        }
+        
+        async function submitImageChanges() {
+            const updatedData = {
+                id: window.currentImageId,
+                displayName: document.querySelector('#modify-image ._displayname-input').value,
+                imagename: document.querySelector('#modify-image ._imagename-input').value,
+                role: document.querySelector('#modify-image ._role-input').value,
+                status: document.querySelector('#modify-image ._status-input').value
+            };
+            
+            try {
+                const response = await fetch(`/api/v1/images/${updatedData.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(updatedData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Show success message
+                    alert('Image updated successfully!');
+                    
+                    // Update the original values and spans with new data
+                    originalValues.displayName = updatedData.displayName;
+                    originalValues.imagename = updatedData.imagename;
+                    originalValues.role = updatedData.role;
+                    originalValues.status = updatedData.status;
+                    
+                    populateImageData(originalValues);
+                    setViewMode();
+                    
+                    // Refresh the page to show updated data in the table
+                    window.location.reload();
+                } else {
+                    alert('Error updating image: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error updating image:', error);
+                alert('Error updating image: ' + error.message);
+            }
+        }
+        
+        function closeModifyImage() {
+            document.getElementById('modify-image').style.display = 'none';
+            window.currentImageId = null;
+            setViewMode();
+        }
+        
+        async function suspendImage(imageId) {
+            if (!imageId && window.currentImageId) {
+                imageId = window.currentImageId;
+            }
+            if (!imageId) {
+                alert('No image ID provided');
+                return;
+            }
+            
+            if (confirm('Are you sure you want to suspend/unsuspend image ID: ' + imageId + '?')) {
+                try {
+                    const response = await fetch(`/api/v1/images/${imageId}/suspend`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        alert(result.message);
+                        // Refresh the page to show updated status
+                        window.location.reload();
+                    } else {
+                        alert('Error: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('Error suspending/unsuspending image:', error);
+                    alert('Error: ' + error.message);
+                }
+            }
+        }
+        
+        async function resetToken() {
+            if (!window.currentImageId) {
+                alert('No image selected');
+                return;
+            }
+            
+            if (confirm('Are you sure you want to reset the token for image ID: ' + window.currentImageId + '?\nThis will force the image to log in again.')) {
+                try {
+                    const response = await fetch(`/api/v1/images/${window.currentImageId}/reset-token`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        alert(result.message);
+                    } else {
+                        alert('Error: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('Error resetting token:', error);
+                    alert('Error: ' + error.message);
+                }
+            }
+        }
+        
+        async function resetPassword() {
+            if (!window.currentImageId) {
+                alert('No image selected');
+                return;
+            }
+            
+            const newPassword = prompt('Enter new password for image ID: ' + window.currentImageId + '\n(minimum 6 characters):');
+            if (!newPassword) {
+                return; // Image cancelled
+            }
+            
+            if (newPassword.length < 6) {
+                alert('Password must be at least 6 characters long');
+                return;
+            }
+            
+            if (confirm('Are you sure you want to reset the password for image ID: ' + window.currentImageId + '?\nThis will force the image to log in again.')) {
+                try {
+                    const response = await fetch(`/api/v1/images/${window.currentImageId}/reset-password`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ newPassword: newPassword })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        alert(result.message);
+                    } else {
+                        alert('Error: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('Error resetting password:', error);
+                    alert('Error: ' + error.message);
+                }
+            }
+        }
+        
+        // Close modal when clicking outside of it
+        document.getElementById('modify-image').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModifyImage();
+            }
+        });
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && document.getElementById('modify-image').style.display === 'flex') {
+                closeModifyImage();
+            }
+        });
+    </script>
+</body>
+</html>

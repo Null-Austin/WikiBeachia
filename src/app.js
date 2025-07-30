@@ -22,6 +22,7 @@ const sharp = require('sharp');
 
 // Local modules
 const db = require('./modules/db.js');
+const mphotos = require('./modules/photos.js')
 const userAuth = require('./modules/userauth.js');
 const forms = require('./modules/forms.js');
 const schemas = require('./modules/schemas.js');
@@ -1252,6 +1253,46 @@ app.get('/admin/users/',async (req,res)=>{
     });
   }
 })
+// app.get('/admin/images/', (req, res) => {
+//   let photos = mphotos
+//   let page = Number(req.query.page) || 1;
+//   let limit = 15;
+//   let offset = (page - 1) * limit;
+
+//   try {
+//     // Get the array of all user images
+//     const allImages = photos.getUserPhotos(); // or getGlobalPhotos() if needed
+//     const totalImages = allImages.length;
+//     const totalPages = Math.ceil(totalImages / limit);
+
+//     // Paginate
+//     const images = allImages.slice(offset, offset + limit);
+
+//     res.render('admin/images', {
+//       header: fs.readFileSync(path.join(__dirname, 'misc/header.html'), 'utf8'),
+//       images: images,
+//       currentPage: page,
+//       totalPages: totalPages,
+//       totalImages: totalImages,
+//       hasNextPage: page < totalPages,
+//       hasPrevPage: page > 1,
+//       wiki: settings
+//     });
+//   } catch (error) {
+//     console.error('Error fetching images:', error);
+//     res.status(500).render('admin/images', {
+//       header: fs.readFileSync(path.join(__dirname, 'misc/header.html'), 'utf8'),
+//       images: [],
+//       currentPage: 1,
+//       totalPages: 0,
+//       totalImages: 0,
+//       hasNextPage: false,
+//       hasPrevPage: false,
+//       error: 'Failed to load images',
+//       wiki: settings
+//     });
+//   }
+// });
 app.get('/admin/applications',async (req,res)=>{
   let offset = Number(req.query.offset) || 0;
   let limit = Number(req.query.limit) || 10;
