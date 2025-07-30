@@ -10,7 +10,7 @@ body {
 body div#header {
   width: 68%;
   margin: 0 auto;
-  padding: 10px;
+  padding: clamp(8px, 2.5vw, 10px);
 }
 body p, body span {
   font-weight: 400;

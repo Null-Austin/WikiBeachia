@@ -6,9 +6,9 @@ body{
 
     // header
     div#header{
-        width: 68%;
+        width: min(68%, 95%);
         margin: 0 auto;
-        padding: 10px;
+        padding: clamp(8px, 2.5vw, 10px);
     }
 
     //font

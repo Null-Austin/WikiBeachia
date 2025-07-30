@@ -76,10 +76,10 @@ body {
             }
         }
         color: $_black-olive;
-        border-radius: 8px;
-        margin: 1rem auto;
-        max-width: 800px;
-        padding: 2rem;
+        border-radius: clamp(4px, 1vw, 8px);
+        margin: clamp(0.5rem, 2.5vw, 1rem) auto;
+        max-width: min(800px, 95%);
+        padding: clamp(1rem, 5vw, 2rem);
         textarea {
             background-color: #423D38ff;
             color: white;
