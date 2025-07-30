@@ -13,6 +13,8 @@ const cookieParser = require('cookie-parser');
 const markdownit = require('markdown-it')
   // markdownit plugins
   const markdownitfootnote = require('markdown-it-footnote')
+  const markdownitlazyload = require("@mdit/plugin-img-lazyload");
+  const markdownitimgsize = require("@mdit/plugin-img-size");
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const multer = require('multer');
@@ -207,8 +209,13 @@ if (developer){
   })
 }
 
+// markdown
+const md = new markdownit();
+md.use(markdownitfootnote)
+md.use(markdownitimgsize.obsidianImgSize)
+md.use(markdownitlazyload.imgLazyload)
+
 // dynamic endpoints
-const md = new markdownit().use(markdownitfootnote);
 app.get('/wiki/:name', async (req, res) => {
   try {
     let page = await db.pages.getPage(req.params.name)
