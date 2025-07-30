@@ -1,5 +1,6 @@
 // Developer settings
 const developer = process.argv.includes('-t')
+const release = true
 
 // Node modules
 const path = require('node:path');
@@ -38,7 +39,9 @@ if (developer){
     ))
   );
 } else {
-  console.log(colors.red('this product is not intended for prod use.\n    This product may require modification to work.\n    To get prod ready, please look at builds,\n    and when they are avalible ;)'))
+  if (!release){
+    console.log(colors.red('this product is not intended for prod use.\n    This product may require modification to work.\n    To get prod ready, please look at builds,\n    and when they are avalible ;)'))
+  }
 }
 let settings = {};
 async function loadSettings() {
