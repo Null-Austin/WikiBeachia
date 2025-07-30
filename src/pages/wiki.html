@@ -11,7 +11,7 @@
     <meta property="og:title" content="<%= title %> | <%= wiki.site_name %>">
     <meta property="og:site_name" content="<%= wiki.site_name %>">
     <meta property="og:type" content="article">
-    <meta property="og:description" content="<%= content.replace(/<[^>]*>/g, '').substring(0, 200) %>">
+    <meta property="og:description" content="<%= (() => { const desc = content.replace(/<[^>]*>/g, ''); return desc.length > 200 ? desc.substring(0, 200) + '...' : desc; })() %>">
 </head>
 <body>
     <%- header %>
