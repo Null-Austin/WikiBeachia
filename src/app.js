@@ -361,7 +361,7 @@ app.post('/api/v1/upload-image', m_upload.single('photo'), async (req, res) => {
   }
   // Generate unique filename
   const fileExtension = path.extname(req.file.originalname);
-  const uniqueFilename = `${req.user.id}-${new Date().getTime()}-media.${fileExtension}`
+  const uniqueFilename = `${req.user.id}-${new Date().getTime()}-media${fileExtension}`
   const filePath = path.join(__dirname, 'media/user', uniqueFilename);
 
   // Save file to disk
