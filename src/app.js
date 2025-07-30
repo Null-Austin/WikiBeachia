@@ -10,7 +10,9 @@ const express = require('express');
 const ejs = require('ejs');
 const colors = require('colors/safe');
 const cookieParser = require('cookie-parser');
-const markdownit = require('markdown-it');
+const markdownit = require('markdown-it')
+  // markdownit plugins
+  const markdownitfootnote = require('markdown-it-footnote')
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const multer = require('multer');
@@ -206,7 +208,7 @@ if (developer){
 }
 
 // dynamic endpoints
-const md = new markdownit();
+const md = new markdownit().use(markdownitfootnote);
 app.get('/wiki/:name', async (req, res) => {
   try {
     let page = await db.pages.getPage(req.params.name)
