@@ -100,78 +100,77 @@
     </div>
 
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const form = document.querySelector('.dynamic-form');
-        const formAction = '<%= action %>';
-        const shouldStringify = <%= typeof stringify !== 'undefined' ? JSON.stringify(stringify) : 'true' %>;
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('.dynamic-form');
+            const formAction = '<%= action %>';
+            const shouldStringify = <%= typeof stringify !== 'undefined' ? JSON.stringify(stringify) : 'true' %>;
 
-        if (formAction.startsWith('/api/v1/')) {
-            form.addEventListener('submit', async function(e) {
-                e.preventDefault();
+            if (formAction.startsWith('/api/v1/')) {
+                form.addEventListener('submit', async function(e) {
+                    e.preventDefault();
 
-                const data = {};
-                const formData = new FormData(form);
+                    const data = {};
+                    const formData = new FormData(form);
 
-                // Collect all inputs
-                const inputs = form.querySelectorAll('input, select, textarea');
-                inputs.forEach(input => {
-                    if (input.type === 'checkbox') {
-                        data[input.name] = input.checked;
-                    } else if (input.type === 'file') {
-                        // Leave files in FormData only
-                    } else if (input.name) {
-                        data[input.name] = input.value;
+                    // Collect all inputs
+                    const inputs = form.querySelectorAll('input, select, textarea');
+                    inputs.forEach(input => {
+                        if (input.type === 'checkbox') {
+                            data[input.name] = input.checked;
+                        } else if (input.type === 'file') {
+                            // Leave files in FormData only
+                        } else if (input.name) {
+                            data[input.name] = input.value;
+                        }
+                    });
+
+                    // Check for returnTo param in URL
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const returnTo = urlParams.get('returnTo');
+                    if (returnTo) {
+                        data.returnTo = returnTo;
+                    }
+
+                    let fetchOptions = {
+                        method: 'POST',
+                        headers: {},
+                        body: null
+                    };
+
+                    if (shouldStringify) {
+                        fetchOptions.headers['Content-Type'] = 'application/json';
+                        fetchOptions.body = JSON.stringify(data);
+                    } else {
+                        // Attach files and other data to FormData
+                        for (const key in data) {
+                            formData.append(key, data[key]);
+                        }
+                        fetchOptions.body = formData;
+                    }
+
+                    try {
+                        const response = await fetch(formAction, fetchOptions);
+                        const result = await response.json();
+
+                        if (response.ok) {
+                            if (result.redirectUrl || result.url) {
+                                window.location.href = result.redirectUrl || result.url;
+                            } else {
+                                showNotification(result.message || 'Success!', 'success');
+                                if (formAction.includes('login')) {
+                                    setTimeout(() => window.location.href = '/', 1500);
+                                }
+                            }
+                        } else {
+                            showNotification(result.error || 'Something went wrong', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        showNotification('Network error. Please try again.', 'error');
                     }
                 });
-
-                // Check for returnTo param in URL
-                const urlParams = new URLSearchParams(window.location.search);
-                const returnTo = urlParams.get('returnTo');
-                if (returnTo) {
-                    data.returnTo = returnTo;
-                }
-
-                let fetchOptions = {
-                    method: 'POST',
-                    headers: {},
-                    body: null
-                };
-
-                if (shouldStringify) {
-                    fetchOptions.headers['Content-Type'] = 'application/json';
-                    fetchOptions.body = JSON.stringify(data);
-                } else {
-                    // Attach files and other data to FormData
-                    for (const key in data) {
-                        formData.append(key, data[key]);
-                    }
-                    fetchOptions.body = formData;
-                }
-
-                try {
-                    const response = await fetch(formAction, fetchOptions);
-                    const result = await response.json();
-
-                    if (response.ok) {
-                        if (result.redirectUrl || result.url) {
-                            window.location.href = result.redirectUrl || result.url;
-                        } else {
-                            showNotification(result.message || 'Success!', 'success');
-                            if (formAction.includes('login')) {
-                                setTimeout(() => window.location.href = '/', 1500);
-                            }
-                        }
-                    } else {
-                        showNotification(result.error || 'Something went wrong', 'error');
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    showNotification('Network error. Please try again.', 'error');
-                }
-            });
-        }
-    });
-</script>
-
+            }
+        });
+    </script>
 </body>
 </html>
