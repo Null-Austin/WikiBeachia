@@ -13,13 +13,15 @@ const cookieParser = require('cookie-parser');
 const markdownit = require('markdown-it');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
+const multer = require('multer');
+const sharp = require('sharp');
 
 // Local modules
 const db = require('./modules/db.js');
 const userAuth = require('./modules/userauth.js');
 const forms = require('./modules/forms.js');
 const schemas = require('./modules/schemas.js');
-const { func } = require('joi');
+const { func, date } = require('joi');
 
 // Simple pre run checks
 if (developer){
@@ -37,6 +39,10 @@ let settings = {};
 async function loadSettings() {
   settings = await db.settings.getSettings();
 }
+
+// set up multer
+const m_storage = multer.memoryStorage();
+const m_upload = multer({m_storage});
 
 // User authentication middleware
 async function authenticateUser(req, res, next) {
@@ -336,6 +342,53 @@ app.post('/api/v1/create-page', async (req, res) => {
       console.error('Error creating page:', error);
       res.status(500).json({ error: 'Unable to create the page at this time. Please try again later.' });
     });
+});
+app.post('/api/v1/upload-image', m_upload.single('photo'), async (req, res) => {
+  if (!req.user || req.user.role < 10){
+    return res.status(403).json({'error':"Unable to authinicate"})
+  }
+  if (!req.file){
+    return res.status(500).json({error:"Please provide a photo"})
+  }
+  let file = {size:req.file.size,type:req.file.mimetype}
+  // Check file size (5MB limit)
+  if (file.size > 5 * 1024 * 1024) {
+    return res.status(400).json({error: "File size too large. Maximum allowed size is 5MB."});
+  }
+
+  if (!file.type.startsWith('image/')) {
+    return res.status(400).json({error: "Only image files are allowed."});
+  }
+  // Generate unique filename
+  const fileExtension = path.extname(req.file.originalname);
+  const uniqueFilename = `${req.user.id}-${new Date().getTime()}-media.${fileExtension}`
+  const filePath = path.join(__dirname, 'media/user', uniqueFilename);
+
+  // Save file to disk
+  try {
+    // Process image with sharp for compression
+    let imageBuffer = req.file.buffer;
+    const metadata = await sharp(imageBuffer).metadata();
+    
+    // Determine if we need to process this image
+    if (metadata.format === 'jpeg' || metadata.format === 'jpg' || metadata.format === 'png') {
+      imageBuffer = await sharp(req.file.buffer)
+        .jpeg({ quality: 80, progressive: true }) // Good quality, progressive loading
+        .withMetadata() // Preserve metadata
+        .toBuffer();
+    }
+    
+    // Save the processed (or original if not processed) image
+    fs.writeFileSync(filePath, imageBuffer);
+    res.status(200).json({
+      message: "Photo uploaded successfully",
+      filename: uniqueFilename,
+      url: `/media/user/${uniqueFilename}`
+    });
+  } catch (error) {
+    console.error('Error processing/saving file:', error);
+    res.status(500).json({error: "Failed to save file"});
+  }
 });
 app.post('/api/v1/delete-page', async (req, res) => {
   let body = req.body;
@@ -1097,6 +1150,10 @@ app.get('/wikian/:url', requireRole(10), (req, res, next) => {
     return next();
   }
   return next();
+})
+app.get('/wikian/upload-image', async (req, res) => {
+  let formConfig = forms.getFormConfig('upload-image')
+  renderForm(res, req,formConfig)
 })
 app.get('/wikian/',(req,res)=>{
   res.redirect('/wikian/dashboard');

@@ -18,7 +18,7 @@
     <div id="main-content">
         <div class="form-container">
             <h1><%= formTitle %></h1>
-            <form method="<%= method || 'POST' %>" action="<%= action %>" class="dynamic-form">
+            <form method="<%= method || 'POST' %>" action="<%= action %>" class="dynamic-form" enctype="<%= typeof enctype !== 'undefined' ? enctype : 'application/x-www-form-urlencoded' %>">
                 <% fields.forEach(function(field) { %>
                     <div class="form-group">
                         <% if (field.type !== 'checkbox') { %>
@@ -100,71 +100,78 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const form = document.querySelector('.dynamic-form');
-            const formAction = '<%= action %>';
-            
-            // Handle login and other API forms
-            if (formAction.startsWith('/api/v1/')) {
-                form.addEventListener('submit', async function(e) {
-                    e.preventDefault();
-                    
-                    const formData = new FormData(form);
-                    const data = {};
-                    
-                    // Handle all form inputs including unchecked checkboxes
-                    const inputs = form.querySelectorAll('input, select, textarea');
-                    inputs.forEach(input => {
-                        if (input.type === 'checkbox') {
-                            // For checkboxes, explicitly set true/false
-                            data[input.name] = input.checked;
-                        } else if (input.name) {
-                            // For other inputs, use their value
-                            data[input.name] = input.value;
-                        }
-                    });
-                    
-                    // Add returnTo parameter if it exists in URL
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const returnTo = urlParams.get('returnTo');
-                    if (returnTo) {
-                        data.returnTo = returnTo;
-                    }
-                    
-                    try {
-                        const response = await fetch(formAction, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify(data)
-                        });
-                        
-                        const result = await response.json();
-                        
-                        if (response.ok) {
-                            // Handle successful response
-                            if (result.redirectUrl) {
-                                window.location.href = result.redirectUrl;
-                            } else if (result.url) {
-                                window.location.href = result.url;
-                            } else {
-                                showNotification(result.message || 'Success!', 'success');
-                                if (formAction.includes('login')) {
-                                    setTimeout(() => window.location.href = '/', 1500);
-                                }
-                            }
-                        } else {
-                            // Handle error response
-                            showNotification(result.error || 'Something went wrong', 'error');
-                        }
-                    } catch (error) {
-                        console.error('Error:', error);
-                        showNotification('Network error. Please try again.', 'error');
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('.dynamic-form');
+        const formAction = '<%= action %>';
+        const shouldStringify = <%= typeof stringify !== 'undefined' ? JSON.stringify(stringify) : 'true' %>;
+
+        if (formAction.startsWith('/api/v1/')) {
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const data = {};
+                const formData = new FormData(form);
+
+                // Collect all inputs
+                const inputs = form.querySelectorAll('input, select, textarea');
+                inputs.forEach(input => {
+                    if (input.type === 'checkbox') {
+                        data[input.name] = input.checked;
+                    } else if (input.type === 'file') {
+                        // Leave files in FormData only
+                    } else if (input.name) {
+                        data[input.name] = input.value;
                     }
                 });
-            }
-        });
-    </script>
+
+                // Check for returnTo param in URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const returnTo = urlParams.get('returnTo');
+                if (returnTo) {
+                    data.returnTo = returnTo;
+                }
+
+                let fetchOptions = {
+                    method: 'POST',
+                    headers: {},
+                    body: null
+                };
+
+                if (shouldStringify) {
+                    fetchOptions.headers['Content-Type'] = 'application/json';
+                    fetchOptions.body = JSON.stringify(data);
+                } else {
+                    // Attach files and other data to FormData
+                    for (const key in data) {
+                        formData.append(key, data[key]);
+                    }
+                    fetchOptions.body = formData;
+                }
+
+                try {
+                    const response = await fetch(formAction, fetchOptions);
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        if (result.redirectUrl || result.url) {
+                            window.location.href = result.redirectUrl || result.url;
+                        } else {
+                            showNotification(result.message || 'Success!', 'success');
+                            if (formAction.includes('login')) {
+                                setTimeout(() => window.location.href = '/', 1500);
+                            }
+                        }
+                    } else {
+                        showNotification(result.error || 'Something went wrong', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    showNotification('Network error. Please try again.', 'error');
+                }
+            });
+        }
+    });
+</script>
+
 </body>
 </html>

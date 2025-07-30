@@ -141,5 +141,23 @@
         "required": true
       }
     ]
+  },
+  "upload-image": {
+    "stringify":false,
+    "title": "Upload image",
+    "formTitle": "Upload image",
+    "method": "POST",
+    "action": "/api/v1/upload-image",
+    "submitText": "Upload",
+    "enctype":"multipart/form-data",
+    "fields": [
+      {
+        "name": "photo",
+        "label": "Upload photos",
+        "type": "file",
+        "placeholder": "Re-enter your password",
+        "required": true
+      }
+    ]
   }
 }
