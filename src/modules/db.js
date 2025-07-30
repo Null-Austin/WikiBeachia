@@ -65,7 +65,8 @@ const _db = new class{
             );
             INSERT OR IGNORE INTO wiki_variables (name, value, description) VALUES
                 ('site_name', 'WikiBeachia', 'The name of the wiki'),
-                ('admin_account_enabled', 'true', 'please make your own admin account in prod');
+                ('admin_account_enabled', 'true', 'please make your own admin account in prod'),
+                ('icon','icon.png','uh, icon url :)')
         `;
         return new Promise((resolve, reject) => {
             this.db.exec(sql, err => err ? reject(err) : resolve());
@@ -328,10 +329,11 @@ const _db = new class{
                         this.settings = await this.getSettings();
                     }
                     
-                    let {site_name, admin_account_enabled} = settings;
+                    let {site_name, admin_account_enabled, icon} = settings;
                     // Use explicit undefined check instead of falsy check
                     site_name = site_name !== undefined ? site_name : this.settings.site_name;
                     admin_account_enabled = admin_account_enabled !== undefined ? admin_account_enabled : this.settings.admin_account_enabled;
+                    icon = icon !== undefined ? icon : this.settings.icon;
                     
                     // Convert boolean values to strings for database storage
                     if (typeof admin_account_enabled === 'boolean') {
@@ -341,9 +343,10 @@ const _db = new class{
                     this.db.serialize(() => {
                         this.db.prepare('UPDATE wiki_variables SET value = ? WHERE name = ?').run(site_name, 'site_name');
                         this.db.prepare('UPDATE wiki_variables SET value = ? WHERE name = ?').run(admin_account_enabled, 'admin_account_enabled');
+                        this.db.prepare('UPDATE wiki_variables SET value = ? WHERE name = ?').run(icon, 'icon');
                         // Update cached settings
-                        this.settings = { site_name, admin_account_enabled };
-                        res({ site_name, admin_account_enabled });
+                        this.settings = { site_name, admin_account_enabled, icon };
+                        res({ site_name, admin_account_enabled, icon });
                     });
                 } catch (error) {
                     rej(error);

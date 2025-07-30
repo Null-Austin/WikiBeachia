@@ -326,7 +326,7 @@ app.get('/media/user/:page', (req, res) => {
   });
 });
 app.get('/favicon.ico',(req,res)=>{
-  res.redirect('/media/icon.png')
+  res.redirect('/media/'+settings.icon)
 })
 app.get('/media/:page', (req, res) => {
   const page = req.params.page;
@@ -1216,6 +1216,7 @@ app.get('/admin/wiki', async (req, res) => {
   let {site_name, admin_account_enabled} = settings;
   fields[0].value = settings.site_name;
   fields[1].value = settings.admin_account_enabled;
+  fields[2].value = settings.icon
 
   formConfig.fields = fields;
   renderForm(res, req, formConfig);
