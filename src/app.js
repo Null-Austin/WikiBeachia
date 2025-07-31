@@ -217,7 +217,10 @@ if (developer){
 }
 
 // markdown
-const md = new markdownit();
+const md = new markdownit({
+  linkify:true,
+  typographer: true
+});
 md.use(markdownitfootnote)
 md.use(markdownitimgsize.obsidianImgSize)
 md.use(markdownitlazyload.imgLazyload)

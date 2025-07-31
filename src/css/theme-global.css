@@ -56,3 +56,6 @@ body div#main-content {
 body div#main-content, body div#header {
   border-radius: 5px;
 }
+body div#edit {
+  padding-bottom: 25px;
+}
