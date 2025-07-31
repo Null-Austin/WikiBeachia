@@ -280,8 +280,8 @@ body div#main-content a:visited, body #modify-user a:visited {
   color: #8250df;
 }
 body div#main-content code, body #modify-user code {
-  background-color: #f6f8fa;
-  color: #24292f;
+  background-color: #423d38;
+  color: #f6f8fa;
   padding: 0.2em 0.4em;
   margin: 0;
   font-size: 0.875em;
@@ -289,8 +289,7 @@ body div#main-content code, body #modify-user code {
   font-family: "SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", monospace;
 }
 body div#main-content pre, body #modify-user pre {
-  background-color: #f6f8fa;
-  border: 1px solid #e1e4e8;
+  background-color: #423d38;
   border-radius: 6px;
   padding: 1rem;
   overflow-x: auto;
@@ -301,7 +300,7 @@ body div#main-content pre code, body #modify-user pre code {
   padding: 0;
   margin: 0;
   border-radius: 0;
-  color: #24292f;
+  color: #f6f8fa;
   font-size: 0.875rem;
   line-height: 1.45;
 }
@@ -309,8 +308,8 @@ body div#main-content blockquote, body #modify-user blockquote {
   margin: 1rem 0;
   padding: 0 1rem;
   color: #656d76;
-  border-left: 4px solid #d1d9e0;
-  background-color: #f8f9fa;
+  border-left: 4px solid rgb(212.9724409449, 180.5511811024, 144.5275590551);
+  background-color: #dcc1a3;
   border-radius: 0 3px 3px 0;
 }
 body div#main-content blockquote p, body #modify-user blockquote p {

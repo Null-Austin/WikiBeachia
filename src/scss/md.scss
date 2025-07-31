@@ -126,8 +126,8 @@ body {
         
         // Code
         code {
-            background-color: $md-code-bg;
-            color: $md-code-text;
+            background-color: $md-bg-code-block;
+            color: $md-bg-code;
             padding: 0.2em 0.4em;
             margin: 0;
             font-size: 0.875em;
@@ -137,7 +137,7 @@ body {
         
         pre {
             background-color: $md-bg-code-block;
-            border: 1px solid $md-border-secondary;
+            // border: 1px solid $md-border-secondary;
             border-radius: 6px;
             padding: 1rem;
             overflow-x: auto;
@@ -148,7 +148,7 @@ body {
                 padding: 0;
                 margin: 0;
                 border-radius: 0;
-                color: $md-code-text;
+                color: $md-bg-code;
                 font-size: 0.875rem;
                 line-height: 1.45;
             }

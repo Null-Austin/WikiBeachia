@@ -23,7 +23,7 @@ $md-bg-primary: #ffffff;
 $md-bg-secondary: #f6f8fa;
 $md-bg-tertiary: #f0f3f6;
 $md-bg-code: #f6f8fa;
-$md-bg-code-block: #f6f8fa;
+$md-bg-code-block: #423D38ff;
 
 // Border colors
 $md-border-primary: #d1d9e0;
@@ -44,8 +44,8 @@ $md-code-bg: #f6f8fa;
 $md-code-border: #d1d9e0;
 
 // Blockquote
-$md-blockquote-border: #d1d9e0;
-$md-blockquote-bg: #f8f9fa;
+$md-blockquote-border: darken($_dun_2,5%);
+$md-blockquote-bg: $_dun_2;
 $md-blockquote-text: #656d76;
 
 // Table
