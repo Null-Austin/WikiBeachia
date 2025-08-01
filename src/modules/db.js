@@ -99,13 +99,30 @@ const _db = new class{
                     if (!hasBio) {
                         this.db.run("ALTER TABLE users ADD COLUMN bio TEXT DEFAULT 'This is the default user bio, you should change this :)';", err2 => {
                             if (err2) return reject(err2);
-                            resolve();
+                            // After adding bio column, check for last_edited_by column in pages table
+                            this.checkAndAddLastEditedBy(resolve, reject);
                         });
                     } else {
-                        resolve();
+                        // Bio column exists, check for last_edited_by column
+                        this.checkAndAddLastEditedBy(resolve, reject);
                     }
                 });
             });
+        });
+    }
+    
+    checkAndAddLastEditedBy(resolve, reject) {
+        this.db.all("PRAGMA table_info(pages);", (err, columns) => {
+            if (err) return reject(err);
+            const hasLastEditedBy = columns.some(col => col.name === 'last_edited_by');
+            if (!hasLastEditedBy) {
+                this.db.run("ALTER TABLE pages ADD COLUMN last_edited_by INTEGER;", err2 => {
+                    if (err2) return reject(err2);
+                    resolve();
+                });
+            } else {
+                resolve();
+            }
         });
     }
     logs = new class{
@@ -216,7 +233,7 @@ const _db = new class{
         async getPage(name){
             name = String(name).toLowerCase();
             return new Promise((res,rej)=>{
-                this.db.prepare('SELECT * FROM pages WHERE name = ?').get(name,(err,row)=>{
+                this.db.prepare('SELECT p.*, u.display_name as last_editor_name FROM pages p LEFT JOIN users u ON p.last_edited_by = u.id WHERE p.name = ?').get(name,(err,row)=>{
                     if(err) return rej(err);
                     if(!row) return rej('no page found');
                     res(row);
@@ -232,11 +249,11 @@ const _db = new class{
                 });
             });
         }
-        async updatePage(id, name, display_name, content){
+        async updatePage(id, name, display_name, content, userId = null){
             if (!display_name){display_name = name;}
             name = name.toLowerCase().replace(/\s+/g, '_');
             return new Promise((res,rej)=>{
-                this.db.prepare('UPDATE pages SET display_name = ?, name = ?, content = ?, last_modified = CURRENT_TIMESTAMP WHERE id = ?').run(display_name, name, content, id, function(err){
+                this.db.prepare('UPDATE pages SET display_name = ?, name = ?, content = ?, last_modified = CURRENT_TIMESTAMP, last_edited_by = ? WHERE id = ?').run(display_name, name, content, userId, id, function(err){
                     if(err) return rej(err);
                     if(this.changes === 0) return rej(new Error('Page not found'));
                     res(this.changes);

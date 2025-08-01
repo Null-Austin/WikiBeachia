@@ -74,6 +74,15 @@
         .navigation-links a:hover {
             text-decoration: underline;
         }
+        .editor-link {
+            text-decoration: none;
+            color: inherit;
+            border-bottom: 1px dotted #666;
+        }
+        .editor-link:hover {
+            color: #007bff;
+            border-bottom: 1px solid #007bff;
+        }
     </style>
 </head>
 <body>
@@ -88,26 +97,62 @@
         
         <h1 style="transform: translateY(-25px);">Version History: <%= page.display_name %></h1>
         
-        <% if (versions && versions.length > 0) { %>
+        <% if (versions && versions.length >= 0) { %>
             <div class="version-list">
+                <!-- Current version (always first) -->
+                <div class="version-item">
+                    <div class="version-header">
+                        <div class="version-meta">
+                            <strong>Version <%= versions.length + 1 %></strong>
+                            <span style="background-color: #28a745; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.8em; margin-left: 10px;">Current</span>
+                            <br>
+                            <small>
+                                Last modified <%= new Date(page.last_modified || page.created_at).toLocaleString() %>
+                                <% if (page.last_editor_name && page.last_edited_by) { %>
+                                    by <strong><a href="/user/<%= page.last_edited_by %>" class="editor-link"><%= page.last_editor_name %></a></strong>
+                                <% } else if (page.last_editor_name) { %>
+                                    by <strong><%= page.last_editor_name %></strong>
+                                <% } %>
+                            </small>
+                        </div>
+                        <div class="version-actions">
+                            <!-- Current version cannot be restored -->
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 10px;">
+                        <small><strong>Title:</strong> <%= page.display_name %></small>
+                    </div>
+                    
+                    <div class="version-preview">
+                        <% 
+                            let currentPreviewContent = page.content || '';
+                            if (currentPreviewContent.length > 300) {
+                                currentPreviewContent = currentPreviewContent.substring(0, 300) + '...';
+                            }
+                        %>
+                        <%= currentPreviewContent %>
+                    </div>
+                </div>
+
+                <!-- Previous versions -->
                 <% versions.forEach((version, index) => { %>
                     <div class="version-item">
                         <div class="version-header">
                             <div class="version-meta">
                                 <strong>Version <%= versions.length - index %></strong>
-                                <% if (index === 0) { %>
-                                    <span style="background-color: #28a745; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.8em; margin-left: 10px;">Current</span>
-                                <% } %>
                                 <br>
                                 <small>
                                     Edited <%= new Date(version.edited_at).toLocaleString() %>
-                                    <% if (version.editor_name) { %>
+                                    <% if (version.editor_name && version.edited_by) { %>
+                                        by <strong><a href="/user/<%= version.edited_by %>" class="editor-link"><%= version.editor_name %></a></strong>
+                                    <% } else if (version.editor_name) { %>
                                         by <strong><%= version.editor_name %></strong>
                                     <% } %>
                                 </small>
                             </div>
                             <div class="version-actions">
-                                <% if (index !== 0 && user && user.role >= (page.permission - 1 || 99)) { %>
+                                <% if (user && user.role >= (page.permission - 1 || 99)) { %>
                                     <form action="/wiki/<%= page.name %>/restore" method="POST" style="display: inline;">
                                         <input type="hidden" name="version_id" value="<%= version.id %>">
                                         <button type="submit" class="btn btn-restore" onclick="return confirm('Are you sure you want to restore this version? This will overwrite the current content.')">
@@ -137,9 +182,45 @@
                 <% }) %>
             </div>
         <% } else { %>
-            <div style="text-align: center; padding: 40px; color: #666;">
-                <p>No version history available for this page.</p>
-                <p><a href="/wiki/<%= page.name %>">Return to page</a></p>
+            <div class="version-list">
+                <!-- Current version (only version) -->
+                <div class="version-item">
+                    <div class="version-header">
+                        <div class="version-meta">
+                            <strong>Version 1</strong>
+                            <span style="background-color: #28a745; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.8em; margin-left: 10px;">Current</span>
+                            <br>
+                            <small>
+                                Created <%= new Date(page.created_at).toLocaleString() %>
+                                <% if (page.last_editor_name && page.last_edited_by) { %>
+                                    by <strong><a href="/user/<%= page.last_edited_by %>" class="editor-link"><%= page.last_editor_name %></a></strong>
+                                <% } else if (page.last_editor_name) { %>
+                                    by <strong><%= page.last_editor_name %></strong>
+                                <% } %>
+                            </small>
+                        </div>
+                        <div class="version-actions">
+                            <!-- Current version cannot be restored -->
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 10px;">
+                        <small><strong>Title:</strong> <%= page.display_name %></small>
+                    </div>
+                    
+                    <div class="version-preview">
+                        <% 
+                            let currentPreviewContent = page.content || '';
+                            if (currentPreviewContent.length > 300) {
+                                currentPreviewContent = currentPreviewContent.substring(0, 300) + '...';
+                            }
+                        %>
+                        <%= currentPreviewContent %>
+                    </div>
+                </div>
+            </div>
+            <div style="text-align: center; padding: 20px; color: #666;">
+                <p><em>This page has not been edited since its creation.</em></p>
             </div>
         <% } %>
     </div>

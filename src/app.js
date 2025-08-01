@@ -322,7 +322,7 @@ app.post('/wiki/:name/edit', async (req, res) => {
   try {
     // Save previous version before updating
     await db.pages.saveVersion(page.id, page.display_name, page.content, req.user.id);
-    await db.pages.updatePage(page.id, name, display_name, content);
+    await db.pages.updatePage(page.id, name, display_name, content, req.user.id);
   } catch (error) {
     return res.status(500).json({ error: 'Internal server error' });
   }
@@ -358,7 +358,7 @@ app.post('/wiki/:name/restore', async (req, res) => {
   }
 
   // Restore the version
-  await db.pages.updatePage(page.id, page.name, version.display_name, version.content);
+  await db.pages.updatePage(page.id, page.name, version.display_name, version.content, req.user.id);
   res.redirect('/wiki/' + page.name);
 });
 app.get('/user/:uid',async (req,res,next)=>{
@@ -1148,7 +1148,7 @@ app.put('/api/v1/bot/pages/:name', authenticateBot, async (req, res) => {
       return res.status(403).json({ error: 'Insufficient permissions to edit this page' });
     }
     
-    await db.pages.updatePage(page.id, req.params.name, display_name, content);
+    await db.pages.updatePage(page.id, req.params.name, display_name, content, req.bot.id);
     
     res.json({ 
       message: 'Page updated successfully',
