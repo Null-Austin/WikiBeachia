@@ -155,6 +155,9 @@ app.use(authenticateUser);
 app.get('/', async (req, res) => {
   res.redirect('/wiki/home');
 });
+app.get('/Robots.txt',(req,res)=>{
+  res.sendFile(path.join(__dirname,'misc/robots.txt'))
+})
 app.get('/wiki/', (req, res) => {
   res.redirect('/');
 });
