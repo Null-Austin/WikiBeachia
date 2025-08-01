@@ -75,6 +75,13 @@ async function authenticateUser(req, res, next) {
   
   next();
 }
+async function getHeader(req,res,next) {
+  const user = req.user
+  req._header = ejs.render(fs.readFileSync(path.join(__dirname, 'misc/header.html'),'utf8'),{
+    user:user
+  })
+  return next()
+}
 
 // Authorization middleware factory
 function requireRole(minRole = 0) {
@@ -108,7 +115,7 @@ function requireRole(minRole = 0) {
 function renderForm(res, req, formConfig) {
   return res.render('form', {
     ...formConfig,
-    header: fs.readFileSync(path.join(__dirname, 'misc/header.html'), 'utf8'),
+    header: req._header,
     wiki: settings,
     head: formConfig.head || '', // Ensure head is passed to the template
     page: { url: req.originalUrl }
@@ -147,6 +154,7 @@ app.set('views', path.join(__dirname, 'pages'));
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(getHeader)
 
 // User authentication middleware
 app.use(authenticateUser);
@@ -189,7 +197,7 @@ app.get('/articles',async (req,res)=>{
     let articles = allPages.slice(offset, offset + limit);
 
     res.render('articles', {
-      header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
+      header: req._header,
       articles: articles,
       currentPage: page,
       totalPages: totalPages,
@@ -240,7 +248,7 @@ app.get('/wiki/:name', async (req, res) => {
     let content = !markdownEnabled ? md.render(page.content) : page.content
     let style = mathjaxInstance.outputStyle()
     res.render('wiki',{
-      'header':`${fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8')} <style>${style}</style>`,
+      'header':`${req._header} <style>${style}</style>`,
       'content':content,
       permission: page.permission || 100,
       'title': page.display_name || page.name,
@@ -315,7 +323,7 @@ app.get('/user/:uid',async (req,res,next)=>{
   try{
     profile = await db.users.getById(req.params.uid)
     res.render('user',{
-      header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
+      header: req._header,
       wiki:settings,
       profile:profile,
       user:req.user
@@ -1266,7 +1274,7 @@ app.get('/wikian/',(req,res)=>{
 })
 app.get('/wikian/dashboard', async (req, res) => {
   res.render('wikian/dashboard', {
-    header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
+    header: req._header,
     user: req.user,
     wiki:settings
   });
@@ -1294,7 +1302,7 @@ app.get('/admin',(req,res)=>{
 })
 app.get('/admin/dashboard', async (req, res) => {
   res.render('admin/dashboard', {
-    header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
+    header: req._header,
     user: req.user,
     wiki:settings
   });
@@ -1350,7 +1358,7 @@ app.get('/admin/users/',async (req,res)=>{
     let totalPages = Math.ceil(totalUsers / limit);
     
     res.render('admin/users', {
-      header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
+      header: req._header,
       users: users,
       currentPage: page,
       totalPages: totalPages,
@@ -1362,7 +1370,7 @@ app.get('/admin/users/',async (req,res)=>{
   } catch (error) {
     console.error('Error fetching users:', error);
     res.status(500).render('admin/users', {
-      header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
+      header: req._header,
       users: [],
       currentPage: 1,
       totalPages: 0,
@@ -1423,7 +1431,7 @@ app.get('/admin/applications',async (req,res)=>{
     res.status(200).render('admin/applications',{
       applications:applications,
       wiki:settings,
-      header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
+      header: req._header,
     })
   } catch (error){
     console.error('Error fetching applications:', error);
