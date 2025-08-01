@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= profile.display_name %></title>
+    <link rel="stylesheet" href="/css/theme-global.css">
+    <link rel="stylesheet" href="/css/index.css">
+    <link rel="stylesheet" href="/css/theme-regular.css">
+    <link rel="stylesheet" href="/css/md.css">
+    <script src="/js/notifications.js"></script>
+</head>
+<body>
+    <%- header %>
+    <div id="main-content">
+        <h1>
+            <%= profile.display_name %>
+            <span style="color: gray; font-size:26px">(<%= profile.username %>)</span>
+        </h1>
+        <p><%= profile.bio %></p>
+    </div>
+    <% if (user && profile.username == user.username) { %>
+        <div id="edit" style="width: 100%; margin:0 auto; text-align: center;">
+            <a href="/user/<%= profile.id %>/edit">Modify your userpage</a>
+        </div>
+    <% } %>
+</body>
+</html>

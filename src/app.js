@@ -310,6 +310,73 @@ app.post('/wiki/:name/edit', async (req, res) => {
   }
   return res.redirect('/wiki/'+name)
 })
+app.get('/user/:uid',async (req,res,next)=>{
+  let profile;
+  try{
+    profile = await db.users.getById(req.params.uid)
+    res.render('user',{
+      header: fs.readFileSync(path.join(__dirname,'misc/header.html'), 'utf8'),
+      wiki:settings,
+      profile:profile,
+      user:req.user
+    })
+  } catch (err){
+    console.warn(`couldnt show profile: ${err}`)
+    return next()
+  }
+})
+app.get('/user/:uid/edit',async (req,res,next)=>{
+  let user = req.user
+  if (!user){
+    return next()
+  }
+  let profile;
+  try{
+    profile = await db.users.getById(req.params.uid)
+    if (!profile){
+      return next()
+    }
+    if (profile.id !== user.id){
+      if (user.role < 100 && user.role >= profile.role){
+        return next()
+      }
+    }
+    let formconfig = forms.getFormConfig('user-edit')
+    formconfig.action = `/user/${profile.id}/edit`
+    formconfig.formTitle = `${profile.display_name}'s Userpage`
+    formconfig.fields[0].value = profile.display_name
+    formconfig.fields[1].value = profile.bio
+    renderForm(res,req,formconfig)
+  } catch (err){
+    console.warn(colors.yellow(`couldnt show profile: ${err}`))
+    return next()
+  }
+})
+app.post('/user/:uid/edit',async (req,res)=>{
+  let profile;
+  let user;
+  try{
+    profile = await db.users.getById(req.params.uid)
+    user = req.user
+    if (!profile || !user){
+      return res.status(403)
+    }
+    if (profile.id !== user.id){
+      if (user.role < 100 && user.role >= profile.role){
+        return res.status(403)
+      }
+    }
+    if (!req.body || !req.body.display_name || !req.body.bio){
+      return res.status(403)
+    }
+    let {display_name, bio} = req.body
+    await db.users.modifyUser(profile.id,display_name,bio)
+    return res.redirect(`/user/${profile.id}`)
+  } catch (err){
+    console.warn(err)
+    return res.status(404).redirect('.')
+  }
+})
 
 // static file endpoints
 app.get('/css/:page', (req, res) => {
@@ -351,7 +418,6 @@ app.get('/media/:page', (req, res) => {
     }
   });
 });
-
 // api endpoints
 app.use('/api/', apiLimiter); // Apply rate limiting to all API routes
 app.post('/api/v1/create-page', async (req, res) => {

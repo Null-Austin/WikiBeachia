@@ -43,8 +43,10 @@ const _db = new class{
                 token TEXT UNIQUE DEFAULT NULL,
                 display_name TEXT UNIQUE,
                 account_status TEXT DEFAULT 'active',
-                type TEXT DEFAULT 'user'
+                type TEXT DEFAULT 'user',
+                bio TEXT DEFAULT 'This is the default user bio, you should change this :)'
             );
+
             CREATE TABLE IF NOT EXISTS applications (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE,
@@ -54,9 +56,11 @@ const _db = new class{
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 permission INTEGER DEFAULT 0
             );
-            INSERT OR IGNORE INTO users (username,password,display_name,role, type) VALUES 
-                ('admin','${hash('admin')}','Site Administrator', 500, 'user'),
-                ('_system','${this.randomBytes()}','System Bot', 500, 'bot');
+
+            INSERT OR IGNORE INTO users (username, password, display_name, role, type)
+                VALUES ('admin', '${hash('admin')}', 'Site Administrator', 500, 'user');
+            INSERT OR IGNORE INTO users (username, password, display_name, role, type)
+                VALUES ('_system', '${this.randomBytes()}', 'System Bot', 500, 'bot');
 
             CREATE TABLE IF NOT EXISTS wiki_variables (
                 name TEXT PRIMARY KEY UNIQUE NOT NULL,
@@ -66,10 +70,25 @@ const _db = new class{
             INSERT OR IGNORE INTO wiki_variables (name, value, description) VALUES
                 ('site_name', 'WikiBeachia', 'The name of the wiki'),
                 ('admin_account_enabled', 'true', 'please make your own admin account in prod'),
-                ('icon','icon.png','uh, icon url :)')
+                ('icon','icon.png','uh, icon url :)');
         `;
+        // Check if 'bio' column exists, and add it if not
         return new Promise((resolve, reject) => {
-            this.db.exec(sql, err => err ? reject(err) : resolve());
+            this.db.exec(sql, err => {
+                if (err) return reject(err);
+                this.db.all("PRAGMA table_info(users);", (err, columns) => {
+                    if (err) return reject(err);
+                    const hasBio = columns.some(col => col.name === 'bio');
+                    if (!hasBio) {
+                        this.db.run("ALTER TABLE users ADD COLUMN bio TEXT DEFAULT 'This is the default user bio, you should change this :)';", err2 => {
+                            if (err2) return reject(err2);
+                            resolve();
+                        });
+                    } else {
+                        resolve();
+                    }
+                });
+            });
         });
     }
     applications = new class{
@@ -174,6 +193,15 @@ const _db = new class{
     users = new class{
         constructor(){
             this.db = db;
+        }
+        async modifyUser(userid,displayname,bio){
+            return new Promise((res,rej)=>{
+                this.db.prepare('UPDATE users SET display_name = ?, bio = ? WHERE id = ?').run(displayname,bio,userid,function(err){
+                    if (err) return rej(err);
+                    if(this.changes === 0) return rej(new Error('User not found'))
+                    res(this.changes)
+                })
+            })
         }
         async modifyStatus(userid, account_status){
             return new Promise((res, rej) => {

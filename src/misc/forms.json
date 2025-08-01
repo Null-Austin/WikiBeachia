@@ -102,6 +102,29 @@
       }
     ]
   },
+  "user-edit": {
+    "title": "Edit userpage",
+    "formTitle": "",
+    "method": "POST",
+    "action": "",
+    "submitText": "Submit",
+    "fields": [
+      {
+        "name":"display_name",
+        "label":"Display name",
+        "type":"text",
+        "placeholder":"[insert epic display name here]",
+        "required":true
+      },
+      {
+        "name": "bio",
+        "label": "User bio",
+        "type": "textarea",
+        "placeholder": "[insert epic page content here?]",
+        "required": false
+      }
+    ]
+  },
   "register": {
     "title": "Register",
     "formTitle": "Apply for an account",
