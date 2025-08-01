@@ -155,6 +155,18 @@ app.use(express.urlencoded({ extended: true }));
 // local middle ware
 app.use(authenticateUser);
 app.use(getHeader);
+app.use(function(req,res,next){ // logging
+  next()
+  console.log(settings)
+  if (settings.logging !== 'true'){
+    return
+  }
+  let id = 0
+  if (req.user && req.user.id){
+    id = req.user.id
+  }
+  db.logs.add(id,req.url)
+})
 
 // static end points
 app.get('/', async (req, res) => {

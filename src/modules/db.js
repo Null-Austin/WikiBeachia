@@ -67,10 +67,17 @@ const _db = new class{
                 value TEXT DEFAULT NULL,
                 description TEXT DEFAULT NULL
             );
+            CREATE TABLE IF NOT EXISTS logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                userid INTEGER DEFAULT 0,
+                page TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
             INSERT OR IGNORE INTO wiki_variables (name, value, description) VALUES
                 ('site_name', 'WikiBeachia', 'The name of the wiki'),
                 ('admin_account_enabled', 'true', 'please make your own admin account in prod'),
-                ('icon','icon.png','uh, icon url :)');
+                ('icon','icon.png','uh, icon url :)'),
+                ('logging','true','Is logging enabled?');
         `;
         // Check if 'bio' column exists, and add it if not
         return new Promise((resolve, reject) => {
@@ -90,6 +97,51 @@ const _db = new class{
                 });
             });
         });
+    }
+    logs = new class{
+        constructor(){
+            this.db = db;
+        }
+        async add(uid, page){
+            return new Promise((res, rej) => {
+                this.db.prepare('INSERT INTO logs (userid, page) VALUES (?, ?)').run(uid, page, function(err){
+                    if (err) return rej(err);
+                    res(this.lastID);
+                });
+            });
+        }
+        async getByUser(uid, limit = 20, offset = 0){
+            return new Promise((res, rej) => {
+                this.db.prepare('SELECT * FROM logs WHERE userid = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?').all(uid, limit, offset, (err, rows) => {
+                    if (err) return rej(err);
+                    res(rows);
+                });
+            });
+        }
+        async getAll(limit = 50, offset = 0){
+            return new Promise((res, rej) => {
+                this.db.prepare('SELECT * FROM logs ORDER BY timestamp DESC LIMIT ? OFFSET ?').all(limit, offset, (err, rows) => {
+                    if (err) return rej(err);
+                    res(rows);
+                });
+            });
+        }
+        async deleteByUser(uid){
+            return new Promise((res, rej) => {
+                this.db.prepare('DELETE FROM logs WHERE userid = ?').run(uid, function(err){
+                    if (err) return rej(err);
+                    res(this.changes);
+                });
+            });
+        }
+        async deleteById(userid){
+            return new Promise((res, rej) => {
+                this.db.prepare('DELETE FROM logs WHERE userid = ?').run(userid, function(err){
+                    if (err) return rej(err);
+                    res(this.changes);
+                });
+            });
+        }
     }
     applications = new class{
         constructor(){
