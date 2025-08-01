@@ -29,8 +29,6 @@ const mphotos = require('./modules/photos.js')
 const userAuth = require('./modules/userauth.js');
 const forms = require('./modules/forms.js');
 const schemas = require('./modules/schemas.js');
-const { func, date } = require('joi');
-const { Interface } = require('node:readline');
 
 // Simple pre run checks
 if (developer){
@@ -377,6 +375,10 @@ app.post('/user/:uid/edit',async (req,res)=>{
       return res.status(403)
     }
     let {display_name, bio} = req.body
+    let {error,value} = schemas.bioSchema.validate(req.body)
+    if (error){
+      return res.status(4000).redirect('')
+    }
     await db.users.modifyUser(profile.id,display_name,bio)
     return res.redirect(`/user/${profile.id}`)
   } catch (err){

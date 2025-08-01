@@ -6,7 +6,7 @@ const _schemas = new class {
     // for application registration
     registrationSchema = joi.object({
         username: joi.string()
-            .pattern(/^[a-zA-Z0-9_]+$/)
+            .pattern(/^[a-zA-Z0-9_\-]+$/)
             .min(3)
             .max(20)
             .message('Username must contain only letters, numbers, and underscores')
@@ -19,7 +19,21 @@ const _schemas = new class {
         email: joi.string().min(4).email().required(),
         reason: joi.string().min(10).required()
     });
-
+    displayNameSchema = joi.object({
+        
+    });
+    bioSchema = joi.object({
+        bio: joi.string()
+            .max(500)
+            .allow('')
+            .message('Bio must be 500 characters or fewer'),
+        display_name: joi.string()
+            .pattern(/^[a-zA-Z0-9_\- ]+$/)
+            .min(3)
+            .max(32)
+            .message('Display name may contain letters, numbers, spaces, underscores, and hyphens, and must be 3-32 characters long')
+            .required()
+    })
 }()
 
 module.exports = _schemas;
