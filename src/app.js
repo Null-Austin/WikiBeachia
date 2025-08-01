@@ -157,7 +157,6 @@ app.use(authenticateUser);
 app.use(getHeader);
 app.use(function(req,res,next){ // logging
   next()
-  console.log(settings)
   if (settings.logging !== 'true'){
     return
   }
