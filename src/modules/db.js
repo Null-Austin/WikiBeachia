@@ -321,32 +321,24 @@ const _db = new class{
                 });
             });
         }
-        async updateSettings(settings){
+        async updateSettings(settings) {
             return new Promise(async (res, rej) => {
                 try {
-                    // Load current settings if not already loaded
-                    if (!this.settings) {
-                        this.settings = await this.getSettings();
-                    }
-                    
-                    let {site_name, admin_account_enabled, icon} = settings;
-                    // Use explicit undefined check instead of falsy check
-                    site_name = site_name !== undefined ? site_name : this.settings.site_name;
-                    admin_account_enabled = admin_account_enabled !== undefined ? admin_account_enabled : this.settings.admin_account_enabled;
-                    icon = icon !== undefined ? icon : this.settings.icon;
-                    
-                    // Convert boolean values to strings for database storage
-                    if (typeof admin_account_enabled === 'boolean') {
-                        admin_account_enabled = admin_account_enabled.toString();
-                    }
-                    
+                    // Load all current settings from DB
+                    const currentSettings = await this.getSettings();
+                    // For each key in settings, update the DB
                     this.db.serialize(() => {
-                        this.db.prepare('UPDATE wiki_variables SET value = ? WHERE name = ?').run(site_name, 'site_name');
-                        this.db.prepare('UPDATE wiki_variables SET value = ? WHERE name = ?').run(admin_account_enabled, 'admin_account_enabled');
-                        this.db.prepare('UPDATE wiki_variables SET value = ? WHERE name = ?').run(icon, 'icon');
+                        Object.entries(settings).forEach(([key, value]) => {
+                            // Convert boolean to string for DB
+                            if (typeof value === 'boolean') value = value.toString();
+                            // Only update if key exists in DB
+                            if (currentSettings.hasOwnProperty(key)) {
+                                this.db.prepare('UPDATE wiki_variables SET value = ? WHERE name = ?').run(value, key);
+                            }
+                        });
                         // Update cached settings
-                        this.settings = { site_name, admin_account_enabled, icon };
-                        res({ site_name, admin_account_enabled, icon });
+                        this.settings = { ...currentSettings, ...settings };
+                        res(this.settings);
                     });
                 } catch (error) {
                     rej(error);

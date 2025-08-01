@@ -340,7 +340,7 @@ app.get('/media/user/:page', (req, res) => {
   });
 });
 app.get('/favicon.ico',(req,res)=>{
-  res.redirect('/media/'+settings.icon)
+  res.redirect('/media/'+(settings['icon'] || 'icon.png'))
 })
 app.get('/media/:page', (req, res) => {
   const page = req.params.page;
@@ -454,8 +454,8 @@ app.post('/api/v1/login', authLimiter, async (req, res) => {
     if (user.account_status === 'suspended') {
       return res.status(403).json({ error: 'Your account is suspended. Please contact support.' });
     }
-    if (user.username === 'admin' && settings.admin_account_enabled === 'false'){
-      return res.status(403).json({ error: 'The admin account is currently disabled. Please contact support.' }); // settings available in database settings table.
+    if (user.username === 'admin' && (settings['admin_account_enabled'] === 'false' || settings['admin_account_enabled'] === false)){
+      return res.status(403).json({ error: 'The admin account is currently disabled. Please contact support.' });
     }
     
     // Set the token as an httpOnly cookie
@@ -528,16 +528,29 @@ app.post('/api/v1/update-wiki-settings',async (req,res)=>{
   if (!req.user || req.user.role < 100) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
-  
   const body = req.body;
-  if (!body){
+  if (!body || typeof body !== 'object') {
     return res.status(400).json({ error: 'Missing required fields' });
   }
   try {
-    await db.settings.updateSettings(body);
+    // Convert checkbox values from 'on'/'true'/'false' to boolean/string as needed
+    const dbSettings = await db.settings.getSettings();
+    const updateObj = {};
+    Object.entries(dbSettings).forEach(([key, oldVal]) => {
+      if (body.hasOwnProperty(key)) {
+        let val = body[key];
+        // Handle checkboxes: express sends 'on' for checked, nothing for unchecked
+        if (oldVal === 'true' || oldVal === 'false') {
+          if (val === 'on' || val === true || val === 'true') val = 'true';
+          else val = 'false';
+        }
+        updateObj[key] = val;
+      }
+    });
+    await db.settings.updateSettings(updateObj);
     await loadSettings();
     res.status(200).json({ message: 'Wiki settings updated successfully' });
-  } catch (err){
+  } catch (err) {
     console.error('Error updating wiki settings:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
@@ -1221,16 +1234,40 @@ app.get('/admin/dashboard', async (req, res) => {
   });
 });
 app.get('/admin/wiki', async (req, res) => {
-  let formConfig = forms.getFormConfig('wiki-settings');
-  let fields = formConfig.fields || false;
-  if (!fields) {
-    return res.status(500).json({ error: 'Internal server error' });
-  }
+  // Dynamically generate fields for all settings
+  let formConfig = forms.getFormConfig('wiki-settings') || {};
+  let dbSettings = await db.settings.getSettings();
+  // If formConfig.fields exists, use as base, else create empty array
+  let fields = Array.isArray(formConfig.fields) ? formConfig.fields : [];
 
-  let {site_name, admin_account_enabled} = settings;
-  fields[0].value = settings.site_name;
-  fields[1].value = settings.admin_account_enabled;
-  fields[2].value = settings.icon
+  // Build a map for quick lookup
+  let fieldMap = {};
+  fields.forEach(f => { if (f.name) fieldMap[f.name] = f; });
+
+  // For every setting in db, ensure a field exists
+  Object.entries(dbSettings).forEach(([key, value]) => {
+    if (!fieldMap[key]) {
+      // Add a generic text field if not present
+      fields.push({
+        name: key,
+        label: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        type: typeof value === 'boolean' || value === 'true' || value === 'false' ? 'checkbox' : 'text',
+        required: false
+      });
+    }
+  });
+
+  // Set values for all fields from dbSettings
+  fields.forEach(f => {
+    if (dbSettings.hasOwnProperty(f.name)) {
+      // Convert string 'true'/'false' to boolean for checkboxes
+      if (f.type === 'checkbox') {
+        f.value = dbSettings[f.name] === 'true' || dbSettings[f.name] === true;
+      } else {
+        f.value = dbSettings[f.name];
+      }
+    }
+  });
 
   formConfig.fields = fields;
   renderForm(res, req, formConfig);
