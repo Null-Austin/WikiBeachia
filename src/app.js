@@ -1,6 +1,6 @@
 // Developer settings
 const developer = process.argv.includes('-t')
-const release = false
+const release = true
 
 // Node modules
 const path = require('node:path');
