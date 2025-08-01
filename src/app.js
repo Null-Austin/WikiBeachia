@@ -77,7 +77,7 @@ async function authenticateUser(req, res, next) {
 }
 async function getHeader(req,res,next) {
   req._header = ejs.render(fs.readFileSync(path.join(__dirname, 'misc/header.html'),'utf8'),{
-    user:req.header
+    user:req.user
   })
   return next()
 }
