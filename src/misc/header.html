@@ -1,9 +1,14 @@
 <div id="header" style="display: flex; justify-content: space-between; text-align: center;">
     <a href="/" style="flex: 1; text-align: center;">Home</a>
-    <a href="/wikian/" style="flex: 1; text-align: center;">Wikian</a>
     <% if (!user || !user.id) { %>
      <a href="/register" style="flex: 1; text-align: center;">Register</a>
     <% } %>
     <a href="/articles" style="flex: 1; text-align: center;">Articles</a>
-    <%= user %>
+    <% if (user) { %>
+    <a href="/wikian/" style="flex: 1; text-align: center;">Wikian</a>
+    <% if (user.role >= 100) { %>
+    <a href="/admin/" style="flex: 1; text-align: center;">Admin</a>
+    <% } %>
+    <a href="/user/<%= user.id %>" style="flex: 1; text-align: center;"><%= user.display_name %></a>
+    <% } %>
 </div>
