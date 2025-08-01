@@ -76,9 +76,8 @@ async function authenticateUser(req, res, next) {
   next();
 }
 async function getHeader(req,res,next) {
-  const user = req.user
   req._header = ejs.render(fs.readFileSync(path.join(__dirname, 'misc/header.html'),'utf8'),{
-    user:user
+    user:req.header
   })
   return next()
 }
@@ -154,10 +153,10 @@ app.set('views', path.join(__dirname, 'pages'));
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(getHeader)
 
-// User authentication middleware
+// local middle ware
 app.use(authenticateUser);
+app.use(getHeader);
 
 // static end points
 app.get('/', async (req, res) => {
