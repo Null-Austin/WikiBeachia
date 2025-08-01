@@ -27,6 +27,12 @@
     <% if (user && user.role >= permission) { %>
         <div id="edit" style="width: 100%; margin:0 auto; text-align: center;">
             <a href="<%= page.url === '/' ? 'wiki/home/edit' : page.url + '/edit' %>">Modify this wikipage</a>
+            &nbsp;|&nbsp;
+            <a href="<%= page.url === '/' ? 'wiki/home/versions' : page.url + '/versions' %>">View History</a>
+        </div>
+    <% } else { %>
+        <div id="view-history" style="width: 100%; margin:0 auto; text-align: center;">
+            <a href="<%= page.url === '/' ? 'wiki/home/versions' : page.url + '/versions' %>">View Page History</a>
         </div>
     <% } %>
 </body>

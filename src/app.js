@@ -320,12 +320,47 @@ app.post('/wiki/:name/edit', async (req, res) => {
   let display_name = name;
   name = name.toLowerCase().replace(/\s+/g, '_');
   try {
-    await db.pages.updatePage(page.id,name,display_name,content)
+    // Save previous version before updating
+    await db.pages.saveVersion(page.id, page.display_name, page.content, req.user.id);
+    await db.pages.updatePage(page.id, name, display_name, content);
   } catch (error) {
     return res.status(500).json({ error: 'Internal server error' });
   }
-  return res.redirect('/wiki/'+name)
-})
+  return res.redirect('/wiki/' + name);
+});
+// ...existing code...
+
+// View page versions
+app.get('/wiki/:name/versions', async (req, res) => {
+  let page = await db.pages.getPage(req.params.name);
+  if (!page) return res.status(404).redirect('/wiki/404');
+  let versions = await db.pages.getVersions(page.id);
+  res.render('wiki_versions', {
+    header: req._header,
+    wiki: settings,
+    page: page,
+    versions: versions,
+    user: req.user
+  });
+});
+
+// Restore a previous version
+app.post('/wiki/:name/restore', async (req, res) => {
+  let page = await db.pages.getPage(req.params.name);
+  if (!page) return res.status(404).redirect('/wiki/404');
+  let versionId = req.body.version_id;
+  let version = await db.pages.getVersionById(versionId);
+  if (!version) return res.status(404).json({ error: 'Version not found' });
+
+  // Permission check: only allow users who can edit the page
+  if (!req.user || req.user.role < (page.permission-1 || 99)) {
+    return res.status(403).json({ error: 'You do not have permission to restore this page.' });
+  }
+
+  // Restore the version
+  await db.pages.updatePage(page.id, page.name, version.display_name, version.content);
+  res.redirect('/wiki/' + page.name);
+});
 app.get('/user/:uid',async (req,res,next)=>{
   let profile;
   try{

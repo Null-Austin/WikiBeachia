@@ -57,6 +57,16 @@ const _db = new class{
                 permission INTEGER DEFAULT 0
             );
 
+            CREATE TABLE IF NOT EXISTS page_versions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                page_id INTEGER NOT NULL,
+                display_name TEXT,
+                content TEXT,
+                edited_by INTEGER,
+                edited_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(page_id) REFERENCES pages(id)
+            );
+
             INSERT OR IGNORE INTO users (username, password, display_name, role, type)
                 VALUES ('admin', '${hash('admin')}', 'Site Administrator', 500, 'user');
             INSERT OR IGNORE INTO users (username, password, display_name, role, type)
@@ -240,6 +250,34 @@ const _db = new class{
                     res(rows);
                 })
             })
+        }
+
+        // --- Versioning methods ---
+        async saveVersion(pageId, display_name, content, userId){
+            return new Promise((res, rej) => {
+                this.db.prepare('INSERT INTO page_versions (page_id, display_name, content, edited_by) VALUES (?, ?, ?, ?)')
+                    .run(pageId, display_name, content, userId, function(err){
+                        if(err) return rej(err);
+                        res(this.lastID);
+                    });
+            });
+        }
+        async getVersions(pageId){
+            return new Promise((res, rej) => {
+                this.db.prepare('SELECT v.*, u.display_name as editor_name FROM page_versions v LEFT JOIN users u ON v.edited_by = u.id WHERE v.page_id = ? ORDER BY v.edited_at DESC')
+                    .all(pageId, (err, rows) => {
+                        if(err) return rej(err);
+                        res(rows);
+                    });
+            });
+        }
+        async getVersionById(versionId){
+            return new Promise((res, rej) => {
+                this.db.prepare('SELECT * FROM page_versions WHERE id = ?').get(versionId, (err, row) => {
+                    if(err) return rej(err);
+                    res(row);
+                });
+            });
         }
     }();
     users = new class{

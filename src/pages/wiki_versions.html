@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= page.display_name %> - Version History | <%= wiki.site_name %></title>
+    <link rel="stylesheet" href="/css/theme-global.css">
+    <link rel="stylesheet" href="/css/index.css">
+    <link rel="stylesheet" href="/css/theme-regular.css">
+    <link rel="stylesheet" href="/css/md.css">
+    <script src="/js/notifications.js"></script>
+    <style>
+        .version-list {
+            margin-top: 20px;
+        }
+        .version-item {
+            border: 1px solid #ddd;
+            margin-bottom: 10px;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .version-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .version-meta {
+            font-size: 0.9em;
+            color: #666;
+        }
+        .version-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            padding: 5px 10px;
+            text-decoration: none;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+        .btn-view {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-restore {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .btn:hover {
+            opacity: 0.8;
+        }
+        .version-preview {
+            max-height: 200px;
+            overflow: hidden;
+            background-color: white;
+            padding: 10px;
+            border-radius: 3px;
+            margin-top: 10px;
+            border-left: 3px solid #007bff;
+        }
+        .navigation-links {
+            margin-bottom: 20px;
+        }
+        .navigation-links a {
+            margin-right: 15px;
+            text-decoration: none;
+            color: #007bff;
+        }
+        .navigation-links a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <%- header %>
+    <div id="main-content">
+        <div class="navigation-links">
+            <a href="/wiki/<%= page.name %>">&larr; Back to Page</a>
+            <% if (user && user.role >= (page.permission - 1 || 99)) { %>
+                <a href="/wiki/<%= page.name %>/edit">Edit Page</a>
+            <% } %>
+        </div>
+        
+        <h1>Version History: <%= page.display_name %></h1>
+        
+        <% if (versions && versions.length > 0) { %>
+            <div class="version-list">
+                <% versions.forEach((version, index) => { %>
+                    <div class="version-item">
+                        <div class="version-header">
+                            <div class="version-meta">
+                                <strong>Version <%= versions.length - index %></strong>
+                                <% if (index === 0) { %>
+                                    <span style="background-color: #28a745; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.8em; margin-left: 10px;">Current</span>
+                                <% } %>
+                                <br>
+                                <small>
+                                    Edited <%= new Date(version.edited_at).toLocaleString() %>
+                                    <% if (version.editor_name) { %>
+                                        by <strong><%= version.editor_name %></strong>
+                                    <% } %>
+                                </small>
+                            </div>
+                            <div class="version-actions">
+                                <% if (index !== 0 && user && user.role >= (page.permission - 1 || 99)) { %>
+                                    <form action="/wiki/<%= page.name %>/restore" method="POST" style="display: inline;">
+                                        <input type="hidden" name="version_id" value="<%= version.id %>">
+                                        <button type="submit" class="btn btn-restore" onclick="return confirm('Are you sure you want to restore this version? This will overwrite the current content.')">
+                                            Restore
+                                        </button>
+                                    </form>
+                                <% } %>
+                            </div>
+                        </div>
+                        
+                        <% if (version.display_name !== page.display_name) { %>
+                            <div style="margin-bottom: 10px;">
+                                <small><strong>Title:</strong> <%= version.display_name %></small>
+                            </div>
+                        <% } %>
+                        
+                        <div class="version-preview">
+                            <% 
+                                let previewContent = version.content || '';
+                                if (previewContent.length > 300) {
+                                    previewContent = previewContent.substring(0, 300) + '...';
+                                }
+                            %>
+                            <%= previewContent %>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
+        <% } else { %>
+            <div style="text-align: center; padding: 40px; color: #666;">
+                <p>No version history available for this page.</p>
+                <p><a href="/wiki/<%= page.name %>">Return to page</a></p>
+            </div>
+        <% } %>
+    </div>
+</body>
+</html>
