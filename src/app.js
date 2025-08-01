@@ -377,7 +377,7 @@ app.post('/user/:uid/edit',async (req,res)=>{
     let {display_name, bio} = req.body
     let {error,value} = schemas.bioSchema.validate(req.body)
     if (error){
-      return res.status(4000).redirect('')
+      return res.status(400).redirect('')
     }
     await db.users.modifyUser(profile.id,display_name,bio)
     return res.redirect(`/user/${profile.id}`)
