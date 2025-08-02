@@ -33,7 +33,7 @@ const _db = new class{
                 markdown BOOLEAN DEFAULT 0
             );
             INSERT OR IGNORE INTO pages (name, display_name, content, permission) VALUES ('home', 'Home', 'Welcome to the home page. :)', 500);
-            INSERT OR IGNORE INTO pages (name, display_name, content, permission) VALUES ('404', 'Page Not Found', 'This page does not exist. Please check the URL or return to the homepage.', 500);
+            INSERT OR IGNORE INTO pages (name, display_name, content, permission) VALUES ('404', '404', 'This page does not exist. Please check the URL or return to the homepage.', 500);
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE,
