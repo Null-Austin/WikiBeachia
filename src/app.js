@@ -1,5 +1,5 @@
-// Developer settings
-const developer = process.argv.includes('-t')
+// pneumonoultramicroscopicsilicovolcanoconiosis settings. if you ask https://hackclub.slack.com/archives/C0266FRGV/p1754128156676119
+const pneumonoultramicroscopicsilicovolcanoconiosis = process.argv.includes('-t')
 const release = false
 
 // Node modules
@@ -31,11 +31,11 @@ const forms = require('./modules/forms.js');
 const schemas = require('./modules/schemas.js');
 
 // Simple pre run checks
-if (developer){
+if (pneumonoultramicroscopicsilicovolcanoconiosis){
   console.log(colors.bgBlack(
     colors.red(
       colors.underline(
-        `Developer/Testing mode activated. - this product is not intended for prod use.\n${colors.bold('Developers note:')} Dev mode has limited functionality, and dont post bugs about it.`
+        `pneumonoultramicroscopicsilicovolcanoconiosis/Testing mode activated. - this product is not intended for prod use.\n${colors.bold('pneumonoultramicroscopicsilicovolcanoconiosiss note:')} Dev mode has limited functionality, and dont post bugs about it.`
       )
     ))
   );
@@ -222,7 +222,7 @@ app.get('/articles',async (req,res)=>{
 })
 
 // Generic form route for future forms
-if (developer){
+if (pneumonoultramicroscopicsilicovolcanoconiosis){
   app.get('/form/:formType', (req, res, next) => {
     const formType = req.params.formType;
     const formConfig = forms.getFormConfig(formType);
@@ -1307,7 +1307,7 @@ app.get('/api/v1/bot/health', authenticateBot, async (req, res) => {
 
 // wiki content creation pages
 app.get('/wikian/:url', requireRole(10), (req, res, next) => {
-  if (developer) {
+  if (pneumonoultramicroscopicsilicovolcanoconiosis) {
     return next();
   }
   return next();
@@ -1336,7 +1336,7 @@ app.get('/wikian/create-page',(req,res)=>{
 
 // Admin pages
 app.get('/admin/:url', requireRole(100), (req, res, next) => {
-  if (developer) {
+  if (pneumonoultramicroscopicsilicovolcanoconiosis) {
     return next();
   }
   return next();
