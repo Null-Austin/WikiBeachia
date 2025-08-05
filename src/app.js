@@ -82,7 +82,7 @@ const swaggerOptions = {
         description: 'System-level operations'
       }
     ],
-    servers: [{ url: 'http://localhost:3000' }],
+    // servers: [{ url: 'http://localhost:3000' }],
   },
   apis: [path.join(__filename)],
 };
