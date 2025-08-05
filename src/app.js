@@ -236,7 +236,7 @@ app.set('views', path.join(__dirname, 'pages'));
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // local middle ware
 app.use(authenticateUser);
@@ -250,7 +250,7 @@ app.use(function(req,res,next){ // logging
   if (req.user && req.user.id){
     id = req.user.id
   }
-  db.logs.add(id,req.url)
+  db.logs.add(id,req.url) 
 })
 
 // static end points
@@ -561,6 +561,207 @@ app.get('/media/:page', (req, res) => {
 });
 // api endpoints
 app.use('/api/', apiLimiter); // Apply rate limiting to all API routes
+
+/**
+ * @swagger
+ * /api/v1/settings:
+ *   get:
+ *     summary: Get server settings
+ *     description: Get public wiki settings
+ *     tags:
+ *       - System
+ *     responses:
+ *       200:
+ *         description: Settings retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 settings:
+ *                   type: object
+ *                   description: Wiki settings
+ *       500:
+ *         description: Server error
+ */
+app.get('/api/v1/settings', async (req, res) => {
+  try {
+    const publicSettings = await db.settings.getSettings();
+    res.status(200).json({ settings: publicSettings });
+  } catch (error) {
+    console.error('Error fetching settings:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/v1/articles:
+ *   get:
+ *     summary: Get all articles
+ *     description: Get a paginated list of all wiki articles
+ *     tags:
+ *       - Pages
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 15
+ *           maximum: 100
+ *         description: Number of articles per page
+ *     responses:
+ *       200:
+ *         description: Articles retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 articles:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       name:
+ *                         type: string
+ *                       display_name:
+ *                         type: string
+ *                       content:
+ *                         type: string
+ *                       created_at:
+ *                         type: string
+ *                       updated_at:
+ *                         type: string
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     currentPage:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *                     totalArticles:
+ *                       type: integer
+ *                     hasNextPage:
+ *                       type: boolean
+ *                     hasPrevPage:
+ *                       type: boolean
+ *       500:
+ *         description: Server error
+ */
+app.get('/api/v1/articles', async (req, res) => {
+  try {
+    let page = Math.max(1, Number(req.query.page) || 1);
+    let limit = Math.min(100, Math.max(1, Number(req.query.limit) || 15));
+    let offset = (page - 1) * limit;
+
+    let allPages = await db.pages.getAllPages();
+    let totalArticles = allPages.length;
+    let totalPages = Math.ceil(totalArticles / limit);
+    
+    // Apply pagination
+    let articles = allPages.slice(offset, offset + limit);
+
+    res.status(200).json({
+      articles: articles,
+      pagination: {
+        currentPage: page,
+        totalPages: totalPages,
+        totalArticles: totalArticles,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching articles:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/v1/articles/{name}:
+ *   get:
+ *     summary: Get specific article
+ *     description: Get a specific wiki article by name
+ *     tags:
+ *       - Pages
+ *     parameters:
+ *       - in: path
+ *         name: name
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Article name/slug
+ *       - in: query
+ *         name: rendered
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *         description: Whether to return rendered markdown content
+ *     responses:
+ *       200:
+ *         description: Article retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 article:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     name:
+ *                       type: string
+ *                     display_name:
+ *                       type: string
+ *                     content:
+ *                       type: string
+ *                       description: Raw or rendered content based on 'rendered' parameter
+ *                     markdown:
+ *                       type: boolean
+ *                     permission:
+ *                       type: integer
+ *                     created_at:
+ *                       type: string
+ *                     updated_at:
+ *                       type: string
+ *       404:
+ *         description: Article not found
+ *       500:
+ *         description: Server error
+ */
+app.get('/api/v1/articles/:name', async (req, res) => {
+  try {
+    const articleName = req.params.name;
+    const shouldRender = req.query.rendered === 'true';
+    
+    let article = await db.pages.getPage(articleName);
+    if (!article) {
+      return res.status(404).json({ error: 'Article not found' });
+    }
+
+    // If requested, render markdown content
+    if (shouldRender && !article.markdown) {
+      article.content = md.render(article.content);
+    }
+
+    res.status(200).json({ article: article });
+  } catch (error) {
+    console.error('Error fetching article:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 /**
  * @swagger
  * /api/v1/create-page:
