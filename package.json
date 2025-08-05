@@ -39,7 +39,9 @@
     "node-fetch": "^3.3.2",
     "sass": "^1.89.2",
     "sharp": "^0.34.3",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@mdit/plugin-alert": "^0.22.2",

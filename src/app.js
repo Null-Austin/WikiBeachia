@@ -22,6 +22,8 @@ const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const multer = require('multer');
 const sharp = require('sharp');
+const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
 
 // Local modules
 const db = require('./modules/db.js');
