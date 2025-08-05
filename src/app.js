@@ -32,6 +32,62 @@ const userAuth = require('./modules/userauth.js');
 const forms = require('./modules/forms.js');
 const schemas = require('./modules/schemas.js');
 
+// swagger API docs
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'WikiBeachia',
+      version: '1.0.0',
+      description: 'An API for managing WikiBeachia',
+    },
+    components: {
+      securitySchemes: {
+        cookieAuth: {
+          type: 'apiKey',
+          in: 'cookie',
+          name: 'token',
+          description: 'Authentication token stored in httpOnly cookie'
+        },
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          description: 'Authentication token in Authorization header'
+        },
+      },
+    },
+    tags: [
+      {
+        name: 'Authentication',
+        description: 'User authentication endpoints'
+      },
+      {
+        name: 'Pages',
+        description: 'Wiki page management'
+      },
+      {
+        name: 'Media',
+        description: 'Image and media management'
+      },
+      {
+        name: 'User Management',
+        description: 'User registration and application management'
+      },
+      {
+        name: 'Administration',
+        description: 'Admin-only endpoints for managing users and settings'
+      },
+      {
+        name: 'System',
+        description: 'System-level operations'
+      }
+    ],
+    servers: [{ url: 'http://localhost:3000' }],
+  },
+  apis: [path.join(__filename)],
+};
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+
 // Simple pre run checks
 if (pneumonoultramicroscopicsilicovolcanoconiosis){
   console.log(colors.bgBlack(
@@ -57,7 +113,17 @@ const m_upload = multer({m_storage});
 
 // User authentication middleware
 async function authenticateUser(req, res, next) {
-  const token = req.cookies.token;
+  let token = req.cookies.token;
+  
+  // Also check for Authorization header (for API clients like Swagger UI)
+  if (!token && req.headers.authorization) {
+    const authHeader = req.headers.authorization;
+    if (authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    } else if (authHeader.startsWith('Token ')) {
+      token = authHeader.substring(6);
+    }
+  }
   
   if (!token) {
     req.user = null;
@@ -70,7 +136,9 @@ async function authenticateUser(req, res, next) {
   } catch (err) {
     // Invalid or expired token
     req.user = null;
-    res.clearCookie('token');
+    if (req.cookies.token) {
+      res.clearCookie('token');
+    }
   }
   
   next();
@@ -104,6 +172,21 @@ function requireRole(minRole = 0) {
         sameSite: 'strict'
       });
       return res.redirect('/login');
+    }
+    
+    next();
+  };
+}
+
+// API Authorization middleware factory for JSON responses
+function requireApiRole(minRole = 0) {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
+    if (req.user.role < minRole) {
+      return res.status(403).json({ error: 'Insufficient permissions' });
     }
     
     next();
@@ -153,6 +236,7 @@ app.set('views', path.join(__dirname, 'pages'));
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // local middle ware
 app.use(authenticateUser);
@@ -477,26 +561,139 @@ app.get('/media/:page', (req, res) => {
 });
 // api endpoints
 app.use('/api/', apiLimiter); // Apply rate limiting to all API routes
-app.post('/api/v1/create-page', async (req, res) => {
+/**
+ * @swagger
+ * /api/v1/create-page:
+ *   post:
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     summary: Create new page
+ *     description: make a new wiki page (need role 10+)
+ *     tags:
+ *       - Pages
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - display_name
+ *               - content
+ *             properties:
+ *               display_name:
+ *                 type: string
+ *                 description: page title
+ *                 maxLength: 200
+ *               content:
+ *                 type: string
+ *                 description: page content
+ *                 maxLength: 100000
+ *     responses:
+ *       201:
+ *         description: page created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 url:
+ *                   type: string
+ *       400:
+ *         description: missing stuff
+ *       401:
+ *         description: need login
+ *       403:
+ *         description: no permission
+ *       409:
+ *         description: page exists already
+ *       500:
+ *         description: server error
+ */
+app.post('/api/v1/create-page', requireApiRole(10), async (req, res) => {
   let body = req.body;
   if (!body || !body.display_name || !body.content) {
     return res.status(400).json({ error: 'Please provide both a page title and content.' });
   }
+  
+  // Validate input lengths
+  if (body.display_name.length > 200 || body.content.length > 100000) {
+    return res.status(400).json({ error: 'Content too long.' });
+  }
+  
   let { display_name, content } = body;
   let name = display_name.toLowerCase().replace(/\s+/g, '_');
-  db.pages.createPage(name, display_name, content)
-    .then(() => {
-      res.status(201).json({ message: 'Page created successfully!', url: `/wiki/${name}` });
-    })
-    .catch((error) => {
-      console.error('Error creating page:', error);
-      res.status(500).json({ error: 'Unable to create the page at this time. Please try again later.' });
-    });
-});
-app.post('/api/v1/upload-image', m_upload.single('photo'), async (req, res) => {
-  if (!req.user || req.user.role < 10){
-    return res.status(403).json({'error':"Unable to authinicate"})
+  
+  try {
+    await db.pages.createPage(name, display_name, content);
+    res.status(201).json({ message: 'Page created successfully!', url: `/wiki/${name}` });
+  } catch (error) {
+    console.error('Error creating page:', error);
+    
+    // Handle specific SQLite constraint errors
+    if (error.code === 'SQLITE_CONSTRAINT') {
+      if (error.message.includes('pages.name')) {
+        return res.status(409).json({ error: 'A page with this name already exists. Please choose a different title.' });
+      } else if (error.message.includes('pages.display_name')) {
+        return res.status(409).json({ error: 'A page with this title already exists. Please choose a different title.' });
+      }
+      return res.status(409).json({ error: 'A page with this title or name already exists. Please choose a different title.' });
+    }
+    
+    res.status(500).json({ error: 'Unable to create the page at this time. Please try again later.' });
   }
+});
+/**
+ * @swagger
+ * /api/v1/upload-image:
+ *   post:
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     summary: Upload image
+ *     description: upload a pic (need role 10+)
+ *     tags:
+ *       - Media
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - photo
+ *             properties:
+ *               photo:
+ *                 type: string
+ *                 format: binary
+ *                 description: image file (max 5MB)
+ *     responses:
+ *       200:
+ *         description: uploaded ok
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 filename:
+ *                   type: string
+ *                 url:
+ *                   type: string
+ *       400:
+ *         description: file too big or bad format
+ *       401:
+ *         description: need login
+ *       403:
+ *         description: no permission
+ *       500:
+ *         description: server error
+ */
+app.post('/api/v1/upload-image', requireApiRole(10), m_upload.single('photo'), async (req, res) => {
   if (!req.file){
     return res.status(500).json({error:"Please provide a photo"})
   }
@@ -540,7 +737,51 @@ app.post('/api/v1/upload-image', m_upload.single('photo'), async (req, res) => {
     res.status(500).json({error: "Failed to save file"});
   }
 });
-app.post('/api/v1/delete-page', async (req, res) => {
+/**
+ * @swagger
+ * /api/v1/delete-page:
+ *   post:
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     summary: Delete page
+ *     description: delete wiki page (admin only)
+ *     tags:
+ *       - Pages
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: page name to delete
+ *     responses:
+ *       200:
+ *         description: page deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: missing page title
+ *       401:
+ *         description: need login
+ *       403:
+ *         description: no permission
+ *       404:
+ *         description: page not found
+ *       500:
+ *         description: server error
+ */
+app.post('/api/v1/delete-page', requireApiRole(100), async (req, res) => {
   let body = req.body;
   if (!body || !body.title) {
     return res.status(400).json({ error: 'Please provide a page title' });
@@ -553,8 +794,8 @@ app.post('/api/v1/delete-page', async (req, res) => {
       return res.status(404).json({ error: 'Page not found' });
     }
     
-    // Check user permissions
-    if (!req.user || req.user.role < (page.permission || 100) || req.user.role < 100) { // user, user has less role then page.permission or fallback (100), user has less role then admin
+    // Check if user has permission to delete this specific page
+    if (req.user.role < (page.permission || 100)) {
       return res.status(403).json({ error: 'You do not have permission to delete this page.' });
     }
     
@@ -566,6 +807,65 @@ app.post('/api/v1/delete-page', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+/**
+ * @swagger
+ * /api/v1/login:
+ *   post:
+ *     summary: login
+ *     description: log in with username and password
+ *     tags:
+ *       - Authentication
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - password
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: username
+ *               password:
+ *                 type: string
+ *                 description: password
+ *               returnTo:
+ *                 type: string
+ *                 description: where to go after login
+ *     responses:
+ *       200:
+ *         description: logged in
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 redirectUrl:
+ *                   type: string
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     username:
+ *                       type: string
+ *                     display_name:
+ *                       type: string
+ *                     role:
+ *                       type: integer
+ *       400:
+ *         description: missing username or password
+ *       401:
+ *         description: wrong username/password
+ *       403:
+ *         description: account disabled
+ *       429:
+ *         description: too many attempts
+ *       500:
+ *         description: server error
+ */
 app.post('/api/v1/login', authLimiter, async (req, res) => {
   const body = req.body;
   if (!body || !body.username || !body.password) {
@@ -622,6 +922,27 @@ app.post('/api/v1/login', authLimiter, async (req, res) => {
     res.status(500).json({ error: 'We encountered an issue while processing your login. Please try again later.' });
   }
 });
+/**
+ * @swagger
+ * /api/v1/logout:
+ *   post:
+ *     summary: logout
+ *     description: log out and clear session
+ *     tags:
+ *       - Authentication
+ *     responses:
+ *       200:
+ *         description: logged out
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 redirectUrl:
+ *                   type: string
+ */
 app.post('/api/v1/logout', async (req, res) => {
   try {
     if (req.user) {
@@ -647,10 +968,44 @@ app.post('/api/v1/logout', async (req, res) => {
     res.json({ message: 'Logout successful', redirectUrl: '/' });
   }
 });
-app.post('/api/v1/update-wiki-settings',async (req,res)=>{
-  if (!req.user || req.user.role < 100) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+/**
+ * @swagger
+ * /api/v1/update-wiki-settings:
+ *   post:
+ *     security:
+ *       - cookieAuth: []
+ *     summary: Update settings
+ *     description: change wiki settings (admin only)
+ *     tags:
+ *       - Administration
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             description: settings to update
+ *             additionalProperties: true
+ *     responses:
+ *       200:
+ *         description: settings updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: missing data
+ *       401:
+ *         description: need login
+ *       403:
+ *         description: no permission
+ *       500:
+ *         description: server error
+ */
+app.post('/api/v1/update-wiki-settings', requireApiRole(100), async (req,res)=>{
   const body = req.body;
   if (!body || typeof body !== 'object') {
     return res.status(400).json({ error: 'Missing required fields' });
@@ -678,6 +1033,61 @@ app.post('/api/v1/update-wiki-settings',async (req,res)=>{
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
+/**
+ * @swagger
+ * /api/v1/users/apply:
+ *   post:
+ *     summary: Apply for account
+ *     description: submit application for new account
+ *     tags:
+ *       - User Management
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - email
+ *               - reason
+ *               - password
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: username
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: email
+ *               reason:
+ *                 type: string
+ *                 description: why you want an account
+ *               password:
+ *                 type: string
+ *                 description: password
+ *               returnTo:
+ *                 type: string
+ *                 description: where to go after
+ *     responses:
+ *       201:
+ *         description: application sent
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 redirectUrl:
+ *                   type: string
+ *       400:
+ *         description: bad info
+ *       429:
+ *         description: too many apps
+ *       500:
+ *         description: server error
+ */
 app.post('/api/v1/users/apply', authLimiter, async (req, res) => {
   const body = req.body;
   if (!body || !body.username || !body.email || !body.reason || !body.password) {
@@ -711,10 +1121,50 @@ app.post('/api/v1/users/apply', authLimiter, async (req, res) => {
     res.status(500).json({ error: 'We encountered an issue while processing your application. Please try again later.' });
   }
 });
-app.post('/api/v1/users/register',async(req,res)=>{
-  if (!req.user || req.user.role < 100) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+/**
+ * @swagger
+ * /api/v1/users/register:
+ *   post:
+ *     security:
+ *       - cookieAuth: []
+ *     summary: Accept application
+ *     description: approve user application (admin only)
+ *     tags:
+ *       - Administration
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - id
+ *             properties:
+ *               id:
+ *                 type: integer
+ *                 description: application id to accept
+ *     responses:
+ *       200:
+ *         description: application approved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: missing fields
+ *       401:
+ *         description: need login
+ *       403:
+ *         description: no permission
+ *       404:
+ *         description: application not found
+ *       500:
+ *         description: server error
+ */
+app.post('/api/v1/users/register', requireApiRole(100), async(req,res)=>{
   const body = req.body;
   if (!body || !body.id){
     return res.status(400).json({ error: 'Missing required fields' });
@@ -734,10 +1184,50 @@ app.post('/api/v1/users/register',async(req,res)=>{
     res.status(500).json({ error: 'Internal server error' });
   }
 })
-app.post('/api/v1/users/register/deny',async(req,res)=>{
-  if (!req.user || req.user.role < 100) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+/**
+ * @swagger
+ * /api/v1/users/register/deny:
+ *   post:
+ *     security:
+ *       - cookieAuth: []
+ *     summary: Deny application
+ *     description: reject user application (admin only)
+ *     tags:
+ *       - Administration
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - id
+ *             properties:
+ *               id:
+ *                 type: integer
+ *                 description: application id to deny
+ *     responses:
+ *       200:
+ *         description: application denied
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: missing fields
+ *       401:
+ *         description: need login
+ *       403:
+ *         description: no permission
+ *       404:
+ *         description: app not found
+ *       500:
+ *         description: server error
+ */
+app.post('/api/v1/users/register/deny', requireApiRole(100), async(req,res)=>{
   const body = req.body;
   if (!body || !body.id){
     return res.status(400).json({ error: 'Missing required fields' });
@@ -756,12 +1246,46 @@ app.post('/api/v1/users/register/deny',async(req,res)=>{
   }
 })
 
+/**
+ * @swagger
+ * /api/v1/users/{id}:
+ *   delete:
+ *     security:
+ *       - cookieAuth: []
+ *     summary: Delete user
+ *     description: delete user account (admin only)
+ *     tags:
+ *       - Administration
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: user id to delete
+ *     responses:
+ *       200:
+ *         description: user deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: bad user id
+ *       401:
+ *         description: need login
+ *       403:
+ *         description: no permission or cant delete admin/self
+ *       404:
+ *         description: user not found
+ *       500:
+ *         description: server error
+ */
 // Delete user endpoint
-app.delete('/api/v1/users/:id', async (req, res) => {
-  if (!req.user || req.user.role < 100) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  
+app.delete('/api/v1/users/:id', requireApiRole(100), async (req, res) => {
   const userId = parseInt(req.params.id);
   if (!userId) {
     return res.status(400).json({ error: 'Invalid user ID' });
@@ -791,12 +1315,72 @@ app.delete('/api/v1/users/:id', async (req, res) => {
   }
 })
 
+/**
+ * @swagger
+ * /api/v1/users/{id}:
+ *   put:
+ *     security:
+ *       - cookieAuth: []
+ *     summary: Update user
+ *     description: update user info (admin only)
+ *     tags:
+ *       - Administration
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: user id to update
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - displayName
+ *               - username
+ *               - role
+ *               - status
+ *             properties:
+ *               displayName:
+ *                 type: string
+ *                 description: display name
+ *               username:
+ *                 type: string
+ *                 description: username
+ *               role:
+ *                 type: integer
+ *                 enum: [0, 1, 50, 100]
+ *                 description: role level
+ *               status:
+ *                 type: string
+ *                 enum: ['active', 'suspended', 'pending', 'null']
+ *                 description: account status
+ *     responses:
+ *       200:
+ *         description: user updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: bad data
+ *       401:
+ *         description: need login
+ *       403:
+ *         description: no permission or cant modify admin
+ *       404:
+ *         description: user not found
+ *       500:
+ *         description: server error
+ */
 // Update user endpoint
-app.put('/api/v1/users/:id', async (req, res) => {
-  if (!req.user || req.user.role < 100) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  
+app.put('/api/v1/users/:id', requireApiRole(100), async (req, res) => {
   const userId = parseInt(req.params.id);
   if (!userId) {
     return res.status(400).json({ error: 'Invalid user ID' });
@@ -852,11 +1436,36 @@ app.put('/api/v1/users/:id', async (req, res) => {
   }
 })
 
+/**
+ * @swagger
+ * /api/v1/server/shutdown:
+ *   post:
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     summary: Shutdown server
+ *     description: turn off the server (super admin only, click twice)
+ *     tags:
+ *       - System
+ *     responses:
+ *       200:
+ *         description: shutting down
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *       401:
+ *         description: need login
+ *       403:
+ *         description: no permission
+ *       409:
+ *         description: click again within 30 seconds
+ */
 let last_time = 0
-app.post('/api/v1/server/shutdown',async (req,res)=>{
-  if (!req.user || req.role < 500){
-    return res.status(403).json({"error":"Hey, RUDE.",message:"Wow, yk what? un authorized access is illegal under 18 U.S. Code § 1030. So, we just alerted the NSA. Get on my level script kiddie."}) // will it spook anyone???
-  }
+app.post('/api/v1/server/shutdown', requireApiRole(500), async (req,res)=>{
   let _Date = new Date
   let _time = _Date.getTime()
 
@@ -870,12 +1479,49 @@ app.post('/api/v1/server/shutdown',async (req,res)=>{
   },3000)
 })
 
+/**
+ * @swagger
+ * /api/v1/users/{id}/suspend:
+ *   post:
+ *     security:
+ *       - cookieAuth: []
+ *     summary: Suspend user
+ *     description: suspend or unsuspend user (admin only)
+ *     tags:
+ *       - Administration
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: user id to suspend/unsuspend
+ *     responses:
+ *       200:
+ *         description: suspension status changed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 newStatus:
+ *                   type: string
+ *                   enum: ['active', 'suspended']
+ *       400:
+ *         description: bad user id
+ *       401:
+ *         description: need login
+ *       403:
+ *         description: no permission or cant suspend admin/self
+ *       404:
+ *         description: user not found
+ *       500:
+ *         description: server error
+ */
 // Suspend/Unsuspend user endpoint
-app.post('/api/v1/users/:id/suspend', async (req, res) => {
-  if (!req.user || req.user.role < 100) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  
+app.post('/api/v1/users/:id/suspend', requireApiRole(100), async (req, res) => {
   const userId = parseInt(req.params.id);
   if (!userId) {
     return res.status(400).json({ error: 'Invalid user ID' });
@@ -913,12 +1559,46 @@ app.post('/api/v1/users/:id/suspend', async (req, res) => {
   }
 })
 
+/**
+ * @swagger
+ * /api/v1/users/{id}/reset-token:
+ *   post:
+ *     security:
+ *       - cookieAuth: []
+ *     summary: Reset token
+ *     description: reset user login token (admin only)
+ *     tags:
+ *       - Administration
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: user id to reset token
+ *     responses:
+ *       200:
+ *         description: token reset
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: bad user id
+ *       401:
+ *         description: need login
+ *       403:
+ *         description: no permission
+ *       404:
+ *         description: user not found
+ *       500:
+ *         description: server error
+ */
 // Reset user token endpoint
-app.post('/api/v1/users/:id/reset-token', async (req, res) => {
-  if (!req.user || req.user.role < 100) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  
+app.post('/api/v1/users/:id/reset-token', requireApiRole(100), async (req, res) => {
   const userId = parseInt(req.params.id);
   if (!userId) {
     return res.status(400).json({ error: 'Invalid user ID' });
@@ -942,12 +1622,59 @@ app.post('/api/v1/users/:id/reset-token', async (req, res) => {
   }
 })
 
+/**
+ * @swagger
+ * /api/v1/users/{id}/reset-password:
+ *   post:
+ *     security:
+ *       - cookieAuth: []
+ *     summary: Reset password
+ *     description: reset user password (admin only)
+ *     tags:
+ *       - Administration
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: user id to reset password
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - newPassword
+ *             properties:
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 6
+ *                 description: new password
+ *     responses:
+ *       200:
+ *         description: password reset
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: bad id or password too short
+ *       401:
+ *         description: need login
+ *       403:
+ *         description: no permission
+ *       404:
+ *         description: user not found
+ *       500:
+ *         description: server error
+ */
 // Reset user password endpoint
-app.post('/api/v1/users/:id/reset-password', async (req, res) => {
-  if (!req.user || req.user.role < 100) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  
+app.post('/api/v1/users/:id/reset-password', requireApiRole(100), async (req, res) => {
   const userId = parseInt(req.params.id);
   if (!userId) {
     return res.status(400).json({ error: 'Invalid user ID' });
@@ -978,334 +1705,6 @@ app.post('/api/v1/users/:id/reset-password', async (req, res) => {
     }
   }
 })
-
-// Bot authentication middleware
-async function authenticateBot(req, res, next) {
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  
-  if (!token) {
-    return res.status(401).json({ error: 'Missing authorization token' });
-  }
-  
-  try {
-    const user = await db.users.getUserByToken(token);
-    if (!user || user.type !== 'bot') {
-      return res.status(401).json({ error: 'Invalid bot token' });
-    }
-    req.bot = user;
-    next();
-  } catch (err) {
-    return res.status(401).json({ error: 'Invalid or expired bot token' });
-  }
-}
-
-// Bot's API endpoints
-app.post('/api/v1/bot/login', authLimiter, async (req, res) => {
-  const body = req.body;
-
-  // Validate request body
-  if (!body.username || !body.clientSecret) {
-    return res.status(400).json({ error: 'Missing username or client secret' });
-  }
-
-  let { username, clientSecret } = body;
-  try{
-    let user = await db.users.getByUsername(username)
-    if ((!user) || (user.password !== clientSecret) || (user.type !== 'bot')) {
-      return res.status(401).json({ error: 'Invalid username or client secret' });
-    }
-    let token = userAuth.randomBytes()
-    await db.users.setToken(user.id, token);
-    res.json({user:user,token:token})
-  } catch (error){
-    console.error('Error during bot login:', error);
-    if (error.message === 'User not found') {
-      return res.status(401).json({ error: 'Invalid username or client secret' });
-    }
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Get bot information
-app.get('/api/v1/bot/info', authenticateBot, async (req, res) => {
-  try {
-    const botInfo = {
-      id: req.bot.id,
-      username: req.bot.username,
-      display_name: req.bot.display_name,
-      role: req.bot.role,
-      account_status: req.bot.account_status,
-      created_at: req.bot.created_at
-    };
-    res.json(botInfo);
-  } catch (error) {
-    console.error('Error getting bot info:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Refresh bot token
-app.post('/api/v1/bot/refresh-token', authenticateBot, async (req, res) => {
-  try {
-    const newToken = userAuth.randomBytes();
-    await db.users.setToken(req.bot.id, newToken);
-    res.json({ token: newToken, message: 'Token refreshed successfully' });
-  } catch (error) {
-    console.error('Error refreshing bot token:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Bot logout (invalidate token)
-app.post('/api/v1/bot/logout', authenticateBot, async (req, res) => {
-  try {
-    await db.users.setToken(req.bot.id, null);
-    res.json({ message: 'Bot logged out successfully' });
-  } catch (error) {
-    console.error('Error during bot logout:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Get page content
-app.get('/api/v1/bot/pages/:name', authenticateBot, async (req, res) => {
-  try {
-    const page = await db.pages.getPage(req.params.name);
-    
-    // Check if bot has permission to read the page
-    if (req.bot.role < page.permission) {
-      return res.status(403).json({ error: 'Insufficient permissions to access this page' });
-    }
-    
-    res.json({
-      id: page.id,
-      name: page.name,
-      display_name: page.display_name,
-      content: page.content,
-      permission: page.permission,
-      markdown: page.markdown,
-      created_at: page.created_at,
-      last_modified: page.last_modified
-    });
-  } catch (error) {
-    if (error.message === 'no page found') {
-      return res.status(404).json({ error: 'Page not found' });
-    }
-    console.error('Error getting page:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Create a new page
-app.post('/api/v1/bot/pages', authenticateBot, async (req, res) => {
-  const { display_name, content, permission, markdown } = req.body;
-  
-  if (!display_name || !content) {
-    return res.status(400).json({ error: 'Missing required fields: display_name and content' });
-  }
-  
-  // Check if bot has sufficient role for the page permission level
-  const pagePermission = permission || 0;
-  if (req.bot.role < pagePermission) {
-    return res.status(403).json({ error: 'Insufficient permissions to create page with this permission level' });
-  }
-  
-  const name = display_name.toLowerCase().replace(/\s+/g, '_');
-  
-  try {
-    const pageId = await db.pages.createPage(name, display_name, content);
-    
-    // Update page with additional properties if provided
-    if (permission !== undefined || markdown !== undefined) {
-      // Note: You might need to add an updatePageProperties method to db.pages
-      // For now, we'll just create with basic properties
-    }
-    
-    res.status(201).json({ 
-      message: 'Page created successfully',
-      page: { id: pageId, name, display_name, content, permission: pagePermission }
-    });
-  } catch (error) {
-    console.error('Error creating page:', error);
-    if (error.message.includes('UNIQUE constraint failed')) {
-      return res.status(409).json({ error: 'Page name already exists' });
-    }
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Update an existing page
-app.put('/api/v1/bot/pages/:name', authenticateBot, async (req, res) => {
-  const { display_name, content } = req.body;
-  
-  if (!display_name || !content) {
-    return res.status(400).json({ error: 'Missing required fields: display_name and content' });
-  }
-  
-  try {
-    const page = await db.pages.getPage(req.params.name);
-    
-    // Check if bot has permission to edit the page
-    if (req.bot.role < (page.permission - 1 || 99)) {
-      return res.status(403).json({ error: 'Insufficient permissions to edit this page' });
-    }
-    
-    await db.pages.updatePage(page.id, req.params.name, display_name, content, req.bot.id);
-    
-    res.json({ 
-      message: 'Page updated successfully',
-      page: { id: page.id, name: req.params.name, display_name, content }
-    });
-  } catch (error) {
-    if (error.message === 'no page found') {
-      return res.status(404).json({ error: 'Page not found' });
-    }
-    console.error('Error updating page:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Get user information
-app.get('/api/v1/bot/users/:username', authenticateBot, async (req, res) => {
-  try {
-    // Only allow bots with admin role to get user info
-    if (req.bot.role < 100) {
-      return res.status(403).json({ error: 'Insufficient permissions to access user information' });
-    }
-    
-    const user = await db.users.getByUsername(req.params.username);
-    
-    // Return safe user information (no sensitive data)
-    res.json({
-      id: user.id,
-      username: user.username,
-      display_name: user.display_name,
-      role: user.role,
-      account_status: user.account_status,
-      type: user.type,
-      created_at: user.created_at
-    });
-  } catch (error) {
-    if (error.message === 'User not found') {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    console.error('Error getting user:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Get all pages (with pagination)
-app.get('/api/v1/bot/pages', authenticateBot, async (req, res) => {
-  try {
-    const offset = parseInt(req.query.offset) || 0;
-    const limit = Math.min(parseInt(req.query.limit) || 50, 100); // Max 100 per request
-    
-    const pages = await db.pages.getAllPages();
-    
-    // Filter pages based on bot permissions
-    const accessiblePages = pages.filter(page => req.bot.role >= page.permission);
-    
-    // Apply pagination
-    const paginatedPages = accessiblePages.slice(offset, offset + limit);
-    
-    res.json({
-      pages: paginatedPages.map(page => ({
-        id: page.id,
-        name: page.name,
-        display_name: page.display_name,
-        permission: page.permission,
-        markdown: page.markdown,
-        created_at: page.created_at,
-        last_modified: page.last_modified
-      })),
-      total: accessiblePages.length,
-      offset,
-      limit
-    });
-  } catch (error) {
-    console.error('Error getting pages:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Get wiki settings (read-only for bots)
-app.get('/api/v1/bot/wiki/settings', authenticateBot, async (req, res) => {
-  try {
-    // Only allow bots with admin role to access settings
-    if (req.bot.role < 100) {
-      return res.status(403).json({ error: 'Insufficient permissions to access wiki settings' });
-    }
-    
-    const settings = await db.settings.getSettings();
-    res.json(settings);
-  } catch (error) {
-    console.error('Error getting wiki settings:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Search pages by content
-app.get('/api/v1/bot/search', authenticateBot, async (req, res) => {
-  const { query, type } = req.query;
-  
-  if (!query) {
-    return res.status(400).json({ error: 'Missing search query parameter' });
-  }
-  
-  try {
-    const pages = await db.pages.getAllPages();
-    
-    // Filter pages based on bot permissions and search criteria
-    let results = pages.filter(page => {
-      if (req.bot.role < page.permission) return false;
-      
-      switch (type) {
-        case 'title':
-          return page.display_name.toLowerCase().includes(query.toLowerCase()) ||
-                 page.name.toLowerCase().includes(query.toLowerCase());
-        case 'content':
-          return page.content.toLowerCase().includes(query.toLowerCase());
-        default:
-          return page.display_name.toLowerCase().includes(query.toLowerCase()) ||
-                 page.name.toLowerCase().includes(query.toLowerCase()) ||
-                 page.content.toLowerCase().includes(query.toLowerCase());
-      }
-    });
-    
-    // Limit results to prevent overwhelming responses
-    results = results.slice(0, 50);
-    
-    res.json({
-      results: results.map(page => ({
-        id: page.id,
-        name: page.name,
-        display_name: page.display_name,
-        permission: page.permission,
-        created_at: page.created_at,
-        last_modified: page.last_modified
-      })),
-      query,
-      type: type || 'all',
-      count: results.length
-    });
-  } catch (error) {
-    console.error('Error searching pages:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Bot health check
-app.get('/api/v1/bot/health', authenticateBot, async (req, res) => {
-  res.json({
-    status: 'healthy',
-    bot: {
-      username: req.bot.username,
-      role: req.bot.role
-    },
-    timestamp: new Date().toISOString(),
-    api_version: '1.0'
-  });
-});
 
 // wiki content creation pages
 app.get('/wikian/:url', requireRole(10), (req, res, next) => {
