@@ -248,15 +248,13 @@ app.use(async (req,res,next)=>{ // logging
   function check(s){
     return req.url.includes(s)
   }
-  if (check('/api/v1') || check('/wikian/') || check('/admin/')){
-    if (await db.users.ipbanned(ip)){
-      res.status(404).redirect('/wiki/404')
-    }
+  // Store the IP in user record if logged in
+  if (req.user) {
+    db.users.setIP(req.user.id, ip).catch(err => {
+      console.warn('Failed to update user IP:', err);
+    });
   }
   next()
-  if (req.user){
-    db.users.setIP(req.user.id,ip)
-  }
   if (settings.logging !== 'true'){
     return
   }
@@ -1594,6 +1592,72 @@ app.delete('/api/v1/users/:id', requireApiRole(100), async (req, res) => {
  *       500:
  *         description: server error
  */
+/**
+ * @swagger
+ * /api/v1/users/{id}:
+ *   get:
+ *     security:
+ *       - cookieAuth: []
+ *     summary: Get user details
+ *     description: Get detailed information about a user (admin only)
+ *     tags:
+ *       - Administration
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: User ID to get details for
+ *     responses:
+ *       200:
+ *         description: User details retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     username:
+ *                       type: string
+ *                     display_name:
+ *                       type: string
+ *                     role:
+ *                       type: integer
+ *                     account_status:
+ *                       type: string
+ *                     ip:
+ *                       type: string
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Insufficient permissions
+ *       404:
+ *         description: User not found
+ */
+app.get('/api/v1/users/:id', requireApiRole(100), async (req, res) => {
+  const userId = parseInt(req.params.id);
+  if (!userId) {
+    return res.status(400).json({ error: 'Invalid user ID' });
+  }
+  
+  try {
+    const user = await db.users.getById(userId);
+    res.status(200).json({ user });
+  } catch (error) {
+    if (error.message === 'User not found') {
+      res.status(404).json({ error: 'User not found' });
+    } else {
+      console.error('Error getting user:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+});
+
 // Update user endpoint
 app.put('/api/v1/users/:id', requireApiRole(100), async (req, res) => {
   const userId = parseInt(req.params.id);
@@ -2100,8 +2164,161 @@ app.get('/admin/applications',async (req,res)=>{
     console.error('Error fetching applications:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
-
 })
+
+/**
+ * @swagger
+ * /api/v1/ip-bans:
+ *   get:
+ *     security:
+ *       - cookieAuth: []
+ *     summary: Get banned accounts by IP
+ *     description: Get list of all banned accounts grouped by IP address (admin only)
+ *     tags:
+ *       - Administration
+ *     responses:
+ *       200:
+ *         description: List of banned accounts grouped by IP
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 bannedAccounts:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       ip:
+ *                         type: string
+ *                       usernames:
+ *                         type: string
+ *                       account_count:
+ *                         type: integer
+ *                       status:
+ *                         type: string
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Insufficient permissions
+ */
+app.get('/api/v1/ip-bans', requireApiRole(100), async (req, res) => {
+  try {
+    const bannedAccounts = await db.bannedIps.getBannedAccounts();
+    res.status(200).json({ bannedAccounts });
+  } catch (error) {
+    console.error('Error fetching banned accounts:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/v1/ip-bans/{ip}:
+ *   post:
+ *     security:
+ *       - cookieAuth: []
+ *     summary: Ban accounts by IP
+ *     description: Ban all accounts associated with an IP address (admin only)
+ *     tags:
+ *       - Administration
+ *     parameters:
+ *       - in: path
+ *         name: ip
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: IP address whose accounts to ban
+ *     responses:
+ *       200:
+ *         description: Accounts banned successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 bannedCount:
+ *                   type: integer
+ *       400:
+ *         description: Invalid IP address
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Insufficient permissions
+ */
+app.post('/api/v1/ip-bans/:ip', requireApiRole(100), async (req, res) => {
+  const ip = req.params.ip;
+  if (!ip || !ip.match(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/)) {
+    return res.status(400).json({ error: 'Invalid IP address format' });
+  }
+
+  try {
+    const bannedCount = await db.bannedIps.banAccountsByIp(ip, req.user.id);
+    res.status(200).json({ 
+      message: `Successfully banned ${bannedCount} accounts associated with this IP`,
+      bannedCount 
+    });
+  } catch (error) {
+    console.error('Error banning accounts:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/v1/ip-bans/{ip}:
+ *   delete:
+ *     security:
+ *       - cookieAuth: []
+ *     summary: Unban accounts by IP
+ *     description: Unban all accounts associated with an IP address (admin only)
+ *     tags:
+ *       - Administration
+ *     parameters:
+ *       - in: path
+ *         name: ip
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: IP address whose accounts to unban
+ *     responses:
+ *       200:
+ *         description: Accounts unbanned successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 unbannedCount:
+ *                   type: integer
+ *       400:
+ *         description: Invalid IP address
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Insufficient permissions
+ */
+app.delete('/api/v1/ip-bans/:ip', requireApiRole(100), async (req, res) => {
+  const ip = req.params.ip;
+  if (!ip || !ip.match(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/)) {
+    return res.status(400).json({ error: 'Invalid IP address format' });
+  }
+
+  try {
+    const unbannedCount = await db.bannedIps.unbanAccountsByIp(ip);
+    res.status(200).json({ 
+      message: `Successfully unbanned ${unbannedCount} accounts associated with this IP`,
+      unbannedCount 
+    });
+  } catch (error) {
+    console.error('Error unbanning accounts:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 // Handle ECONNABORTED and other errors
 app.use((err, req, res, next) => {
