@@ -241,8 +241,22 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // local middle ware
 app.use(authenticateUser);
 app.use(getHeader);
-app.use(function(req,res,next){ // logging
+app.use(async (req,res,next)=>{ // logging
+  const ip = req.headers['x-forwarded-for'] // Please make sure its a proxy!!!! if its not a proxy, then u risk possbily ip banning the wrong people!! i think
+    ? req.headers['x-forwarded-for'].split(',')[0].trim()
+    : req.socket.remoteAddress;
+  function check(s){
+    return req.url.includes(s)
+  }
+  if (check('/api/v1') || check('/wikian/') || check('/admin/')){
+    if (!await db.users.ipbanned(ip)){
+      res.status(404).redirect('/wiki/404')
+    }
+  }
   next()
+  if (req.user){
+    db.users.setIP(req.user.id,ip)
+  }
   if (settings.logging !== 'true'){
     return
   }
