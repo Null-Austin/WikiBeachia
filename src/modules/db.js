@@ -47,7 +47,8 @@ const _db = new class{
                 display_name TEXT UNIQUE,
                 account_status TEXT DEFAULT 'active',
                 type TEXT DEFAULT 'user',
-                bio  TEXT DEFAULT 'This is the default user bio, you should change this :)'
+                bio  TEXT DEFAULT 'This is the default user bio, you should change this :)',
+                ip TEXT DEFAULT NULL
             );
             
             CREATE TABLE IF NOT EXISTS banned_ips (
@@ -55,7 +56,6 @@ const _db = new class{
                 ip TEXT UNIQUE NOT NULL,
                 banned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 banned_by INTEGER,
-                reason TEXT,
                 FOREIGN KEY(banned_by) REFERENCES users(id)
             );
 
@@ -331,58 +331,81 @@ const _db = new class{
     bannedIps = new class {
         constructor() {
             this.db = db;
-            this.bannedIpCache = new Set();
-            this.cacheLoaded = false;
         }
 
-        async loadBannedIpCache() {
-            return new Promise((resolve, reject) => {
-                this.db.all("SELECT ip FROM banned_ips", (err, rows) => {
-                    if (err) return reject(err);
-                    rows.forEach(row => this.bannedIpCache.add(row.ip));
-                    this.cacheLoaded = true;
-                    resolve();
+        // Ban all accounts associated with an IP
+        async banAccountsByIp(ip, adminUserId) {
+            const hashedIp = _db.hashIP(ip);
+            return new Promise((res, rej) => {
+                // First find all users with this IP
+                this.db.all("SELECT id FROM users WHERE ip = ?", hashedIp, async (err, rows) => {
+                    if (err) return rej(err);
+                    
+                    try {
+                        // Update status for all found users
+                        const updates = rows.map(row => 
+                            new Promise((resolve, reject) => {
+                                this.db.prepare('UPDATE users SET account_status = ? WHERE id = ?')
+                                    .run('suspended', row.id, (err) => {
+                                        if (err) reject(err);
+                                        else resolve();
+                                    });
+                            })
+                        );
+                        
+                        await Promise.all(updates);
+                        res(rows.length); // Return number of accounts banned
+                    } catch (error) {
+                        rej(error);
+                    }
                 });
             });
         }
 
-        async banIp(ip, userId, reason = null) {
+        // Unban all accounts associated with an IP
+        async unbanAccountsByIp(ip) {
             const hashedIp = _db.hashIP(ip);
             return new Promise((res, rej) => {
-                this.db.prepare('INSERT OR REPLACE INTO banned_ips (ip, banned_by, reason) VALUES (?, ?, ?)')
-                    .run(hashedIp, userId, reason, function(err) {
-                        if (err) return rej(err);
-                        this.bannedIpCache.add(hashedIp);
-                        res(this.lastID);
-                    });
+                this.db.all("SELECT id FROM users WHERE ip = ?", hashedIp, async (err, rows) => {
+                    if (err) return rej(err);
+                    
+                    try {
+                        const updates = rows.map(row => 
+                            new Promise((resolve, reject) => {
+                                this.db.prepare('UPDATE users SET account_status = ? WHERE id = ?')
+                                    .run('active', row.id, (err) => {
+                                        if (err) reject(err);
+                                        else resolve();
+                                    });
+                            })
+                        );
+                        
+                        await Promise.all(updates);
+                        res(rows.length); // Return number of accounts unbanned
+                    } catch (error) {
+                        rej(error);
+                    }
+                });
             });
         }
 
-        async unbanIp(ip) {
-            const hashedIp = _db.hashIP(ip);
+        // Get all banned accounts grouped by IP
+        async getBannedAccounts() {
             return new Promise((res, rej) => {
-                this.db.prepare('DELETE FROM banned_ips WHERE ip = ?')
-                    .run(hashedIp, function(err) {
-                        if (err) return rej(err);
-                        this.bannedIpCache.delete(hashedIp);
-                        res(this.changes);
-                    });
-            });
-        }
-
-        async isIpBanned(ip) {
-            const hashedIp = _db.hashIP(ip);
-            if (!this.cacheLoaded) await this.loadBannedIpCache();
-            return this.bannedIpCache.has(hashedIp);
-        }
-
-        async getBannedIps() {
-            return new Promise((res, rej) => {
-                this.db.prepare('SELECT b.*, u.username as banned_by_username FROM banned_ips b LEFT JOIN users u ON b.banned_by = u.id')
-                    .all((err, rows) => {
-                        if (err) return rej(err);
-                        res(rows);
-                    });
+                this.db.all(`
+                    SELECT u.ip, 
+                           GROUP_CONCAT(u.username) as usernames,
+                           COUNT(*) as account_count,
+                           MAX(u.account_status) as status
+                    FROM users u
+                    WHERE u.ip IS NOT NULL 
+                    AND u.account_status = 'suspended'
+                    GROUP BY u.ip
+                    ORDER BY account_count DESC
+                `, (err, rows) => {
+                    if (err) return rej(err);
+                    res(rows);
+                });
             });
         }
     }();
@@ -390,6 +413,15 @@ const _db = new class{
     users = new class{
         constructor(){
             this.db = db;
+        }
+        async setIP(userid, ip) {
+            const hashedIp = _db.hashIP(ip);
+            return new Promise((res, rej) => {
+                this.db.run("UPDATE users SET ip = ? WHERE id = ?", hashedIp, userid, function(err) {
+                    if (err) return rej(err);
+                    res(this.changes);
+                });
+            });
         }
         async modifyUser(userid,displayname,bio){
             return new Promise((res,rej)=>{
