@@ -249,7 +249,7 @@ app.use(async (req,res,next)=>{ // logging
     return req.url.includes(s)
   }
   if (check('/api/v1') || check('/wikian/') || check('/admin/')){
-    if (!await db.users.ipbanned(ip)){
+    if (await db.users.ipbanned(ip)){
       res.status(404).redirect('/wiki/404')
     }
   }
