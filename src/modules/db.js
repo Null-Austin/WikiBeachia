@@ -333,15 +333,23 @@ const _db = new class{
             this.db = db;
         }
 
-        // Ban all accounts associated with an IP
-        async banAccountsByIp(ip, adminUserId) {
-            const hashedIp = _db.hashIP(ip);
+        // Ban all accounts associated with an IP (expects hashed IP from database)
+        async banAccountsByHashedIp(hashedIp, adminUserId) {
             return new Promise((res, rej) => {
-                // First find all users with this IP
+                // First find all users with this hashed IP
                 this.db.all("SELECT id FROM users WHERE ip = ?", hashedIp, async (err, rows) => {
                     if (err) return rej(err);
                     
                     try {
+                        // Add hashed IP to banned_ips table
+                        await new Promise((resolve, reject) => {
+                            this.db.run("INSERT OR IGNORE INTO banned_ips (ip, banned_by) VALUES (?, ?)", 
+                                hashedIp, adminUserId, (err) => {
+                                    if (err) reject(err);
+                                    else resolve();
+                                });
+                        });
+                        
                         // Update status for all found users
                         const updates = rows.map(row => 
                             new Promise((resolve, reject) => {
@@ -362,18 +370,32 @@ const _db = new class{
             });
         }
 
-        // Unban all accounts associated with an IP
-        async unbanAccountsByIp(ip) {
+        // Ban all accounts associated with an IP (expects raw IP)
+        async banAccountsByIp(ip, adminUserId) {
             const hashedIp = _db.hashIP(ip);
+            return this.banAccountsByHashedIp(hashedIp, adminUserId);
+        }
+
+        // Unban all accounts associated with a hashed IP
+        async unbanAccountsByHashedIp(hashedIp) {
             return new Promise((res, rej) => {
                 this.db.all("SELECT id FROM users WHERE ip = ?", hashedIp, async (err, rows) => {
                     if (err) return rej(err);
                     
                     try {
+                        // Remove hashed IP from banned_ips table
+                        await new Promise((resolve, reject) => {
+                            this.db.run("DELETE FROM banned_ips WHERE ip = ?", hashedIp, (err) => {
+                                if (err) reject(err);
+                                else resolve();
+                            });
+                        });
+                        
+                        // Update status for all found users (only if they were suspended due to IP ban)
                         const updates = rows.map(row => 
                             new Promise((resolve, reject) => {
-                                this.db.prepare('UPDATE users SET account_status = ? WHERE id = ?')
-                                    .run('active', row.id, (err) => {
+                                this.db.prepare('UPDATE users SET account_status = ? WHERE id = ? AND account_status = ?')
+                                    .run('active', row.id, 'suspended', (err) => {
                                         if (err) reject(err);
                                         else resolve();
                                     });
@@ -387,6 +409,12 @@ const _db = new class{
                     }
                 });
             });
+        }
+
+        // Unban all accounts associated with an IP (expects raw IP)
+        async unbanAccountsByIp(ip) {
+            const hashedIp = _db.hashIP(ip);
+            return this.unbanAccountsByHashedIp(hashedIp);
         }
 
         // Get all banned accounts grouped by IP
@@ -406,6 +434,29 @@ const _db = new class{
                     if (err) return rej(err);
                     res(rows);
                 });
+            });
+        }
+
+        // Check if an IP is banned
+        async isIpBanned(ip) {
+            const hashedIp = _db.hashIP(ip);
+            return new Promise((res, rej) => {
+                this.db.get("SELECT 1 FROM banned_ips WHERE ip = ?", hashedIp, (err, row) => {
+                    if (err) return rej(err);
+                    res(!!row); // Convert to boolean
+                });
+            });
+        }
+
+        // Ban a specific IP directly
+        async banIp(ip, adminUserId) {
+            const hashedIp = _db.hashIP(ip);
+            return new Promise((res, rej) => {
+                this.db.run("INSERT OR IGNORE INTO banned_ips (ip, banned_by) VALUES (?, ?)", 
+                    hashedIp, adminUserId, function(err) {
+                        if (err) return rej(err);
+                        res(this.changes);
+                    });
             });
         }
     }();

@@ -166,9 +166,10 @@
             <p><b>Role:</b> 
                 <span class="_role"></span>
                 <select class="_role-input" style="display: none;">
-                    <option value="0">User</option>
-                    <option value="50">Moderator</option>
-                    <option value="100">Admin</option>
+                    <option value="0">User (0)</option>
+                    <option value="1">Verified User (1)</option>
+                    <option value="50">Moderator (50)</option>
+                    <option value="100">Admin (100)</option>
                 </select>
             </p>
             <p><b>Status:</b> 
@@ -180,14 +181,14 @@
                     <option value="null">Null</option>
                 </select>
             </p>
+            <p><b>IP Address:</b> <span class="_ip-address">Not recorded</span></p>
             <p><b>Creation date:</b> <span class="_creation-date"></span></p>
             <p><b>ID:</b> <span class="_id"></span></p>
             <h2>Profile page</h2>
             <a href="javascript:void(0)" class="btn btn-edit" id="edit-profile-btn" onclick="toggleEditMode()">Edit Profile</a>
             <h2>Immediate actions</h2>
             <a href="javascript:void(0)" class="btn btn-delete" onclick="suspendUser()">Suspend / Unsuspend</a>
-            <a href="javascript:void(0)" class="btn btn-delete" onclick="ipban()">IP ban</a>
-            <a href="javascript:void(0)" class="btn btn-delete" onclick="ipbanalts()">IP ban alts</a>
+            <a href="javascript:void(0)" class="btn btn-delete" onclick="ipban()">IP Ban Accounts</a>
             <a href="javascript:void(0)" class="btn btn-edit" onclick="resetToken()">Reset Token</a>
             <a href="javascript:void(0)" class="btn btn-edit" onclick="resetPassword()">Reset Password</a>
         </div>  
@@ -225,7 +226,15 @@
                             <td><%= user.id %></td>
                             <td><%= user.display_name || user.username %></td>
                             <td><%= user.username %></td>
-                            <td><%= user.role %></td>
+                            <td>
+                                <% 
+                                let roleText = 'User';
+                                if (user.role === 100) roleText = 'Admin';
+                                else if (user.role === 1) roleText = 'Verified User';
+                                else if (user.role === 0) roleText = 'User';
+                                %>
+                                <%= roleText %> (<%= user.role %>)
+                            </td>
                             <td><%= user.account_status || "null" %></td>
                             <td><%= new Date(user.created_at).toLocaleDateString() %></td>
                             <td>
@@ -301,8 +310,8 @@
             // Store original values
             originalValues = { ...userData };
             
-            // Populate the modal with user data
-            populateUserData(userData);
+            // Fetch full user details from API to get IP address
+            fetchUserDetails(userData.id);
             
             // Store current user ID for actions
             window.currentUserId = userData.id;
@@ -314,14 +323,70 @@
             document.getElementById('modify-user').style.display = 'flex';
         }
         
+        async function fetchUserDetails(userId) {
+            try {
+                const response = await fetch(`/api/v1/users/${userId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    const user = result.user;
+                    
+                    // Update userData with full details including IP
+                    const fullUserData = {
+                        id: user.id,
+                        displayName: user.display_name || user.username,
+                        username: user.username,
+                        role: user.role,
+                        status: user.account_status || 'null',
+                        createdAt: new Date(user.created_at).toLocaleDateString(),
+                        ipAddress: user.ip ? 'Recorded (hashed)' : 'Not recorded'
+                    };
+                    
+                    // Store original values with full data
+                    originalValues = { ...fullUserData };
+                    
+                    // Populate the modal with full user data
+                    populateUserData(fullUserData);
+                } else {
+                    console.error('Error fetching user details:', response.status);
+                    // Fall back to basic data from table
+                    populateUserData(originalValues);
+                }
+            } catch (error) {
+                console.error('Error fetching user details:', error);
+                // Fall back to basic data from table
+                populateUserData(originalValues);
+            }
+        }
+        
         function populateUserData(userData) {
             document.querySelector('#modify-user ._username-title').textContent = userData.username;
             document.querySelector('#modify-user ._displayname').textContent = userData.displayName;
             document.querySelector('#modify-user ._username').textContent = userData.username;
-            document.querySelector('#modify-user ._role').textContent = userData.role;
+            
+            // Format role display
+            let roleText = 'User';
+            const roleNum = parseInt(userData.role);
+            if (roleNum === 100) roleText = 'Admin';
+            else if (roleNum === 50) roleText = 'Moderator';
+            else if (roleNum === 1) roleText = 'Verified User';
+            else if (roleNum === 0) roleText = 'User';
+            
+            document.querySelector('#modify-user ._role').textContent = `${roleText} (${userData.role})`;
             document.querySelector('#modify-user ._status').textContent = userData.status;
             document.querySelector('#modify-user ._creation-date').textContent = userData.createdAt;
             document.querySelector('#modify-user ._id').textContent = userData.id;
+            
+            // Update IP address display
+            const ipElement = document.querySelector('#modify-user ._ip-address');
+            if (ipElement) {
+                ipElement.textContent = userData.ipAddress || 'Not recorded';
+            }
             
             // Populate input fields with current values
             document.querySelector('#modify-user ._displayname-input').value = userData.displayName;
@@ -423,15 +488,14 @@
         
         async function submitUserChanges() {
             const updatedData = {
-                id: window.currentUserId,
                 displayName: document.querySelector('#modify-user ._displayname-input').value,
                 username: document.querySelector('#modify-user ._username-input').value,
-                role: document.querySelector('#modify-user ._role-input').value,
+                role: parseInt(document.querySelector('#modify-user ._role-input').value),
                 status: document.querySelector('#modify-user ._status-input').value
             };
             
             try {
-                const response = await fetch(`/api/v1/users/${updatedData.id}`, {
+                const response = await fetch(`/api/v1/users/${window.currentUserId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -448,7 +512,7 @@
                     // Update the original values and spans with new data
                     originalValues.displayName = updatedData.displayName;
                     originalValues.username = updatedData.username;
-                    originalValues.role = updatedData.role;
+                    originalValues.role = updatedData.role.toString();
                     originalValues.status = updatedData.status;
                     
                     populateUserData(originalValues);
@@ -513,9 +577,9 @@
                 return;
             }
             
-            if (confirm('Are you sure you want to ip ban user ID: ' + userId + '?')) {
+            if (confirm('Are you sure you want to ban all accounts associated with this user\'s IP? User ID: ' + userId)) {
                 try {
-                    const response = await fetch(`/api/v1/users/${userId}/ipban`, {
+                    const response = await fetch(`/api/v1/users/${userId}/ban-ip-accounts`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -525,47 +589,18 @@
                     const result = await response.json();
                     
                     if (response.ok) {
-                        alert(result.message);
-                        // Refresh the page to show updated status
-                        window.location.reload();
-                    } else {
-                        alert('Error: ' + result.error);
-                    }
-                } catch (error) {
-                    console.error('Error ip banning user:', error);
-                    alert('Error: ' + error.message);
-                }
-            }
-        }
-        async function ipbanalts(userId) {
-            if (!userId && window.currentUserId) {
-                userId = window.currentUserId;
-            }
-            if (!userId) {
-                alert('No user ID provided');
-                return;
-            }
-            
-            if (confirm('Are you sure you want to ban all user ID\'s associated with the ip? userid: ' + userId + '?')) {
-                try {
-                    const response = await fetch(`/api/v1/users/${userId}/ipbanalts`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
+                        if (result.bannedCount > 0) {
+                            alert(`Banned ip's`);
+                            // Refresh the page to show updated status
+                            window.location.reload();
+                        } else {
+                            alert('No ip\'s banned :(');
                         }
-                    });
-                    
-                    const result = await response.json();
-                    
-                    if (response.ok) {
-                        alert(result.message);
-                        // Refresh the page to show updated status
-                        window.location.reload();
                     } else {
                         alert('Error: ' + result.error);
                     }
                 } catch (error) {
-                    console.error('Error ip banning users:', error);
+                    console.error('Error banning IP accounts:', error);
                     alert('Error: ' + error.message);
                 }
             }

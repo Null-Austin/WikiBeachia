@@ -241,10 +241,26 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // local middle ware
 app.use(authenticateUser);
 app.use(getHeader);
-app.use(async (req,res,next)=>{ // logging
+app.use(async (req,res,next)=>{ // logging and IP ban checking
   const ip = req.headers['x-forwarded-for'] // Please make sure its a proxy!!!! if its not a proxy, then u risk possbily ip banning the wrong people!! i think
     ? req.headers['x-forwarded-for'].split(',')[0].trim()
     : req.socket.remoteAddress;
+  
+  // Check if IP is banned (unless it's an admin trying to unban)
+  if (!req.url.includes('/api/v1/users/') || !req.url.includes('/unban-ip-accounts')) {
+    try {
+      const isBanned = await db.bannedIps.isIpBanned(ip);
+      if (isBanned) {
+        return res.status(403).json({ 
+          error: 'Access denied', 
+          message: 'Your IP address has been banned from accessing this site' 
+        });
+      }
+    } catch (err) {
+      console.warn('Failed to check IP ban status:', err);
+    }
+  }
+  
   function check(s){
     return req.url.includes(s)
   }
@@ -2202,33 +2218,23 @@ app.get('/admin/applications',async (req,res)=>{
  *       403:
  *         description: Insufficient permissions
  */
-app.get('/api/v1/ip-bans', requireApiRole(100), async (req, res) => {
-  try {
-    const bannedAccounts = await db.bannedIps.getBannedAccounts();
-    res.status(200).json({ bannedAccounts });
-  } catch (error) {
-    console.error('Error fetching banned accounts:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
 /**
  * @swagger
- * /api/v1/ip-bans/{ip}:
+ * /api/v1/users/{id}/ban-ip-accounts:
  *   post:
  *     security:
  *       - cookieAuth: []
- *     summary: Ban accounts by IP
- *     description: Ban all accounts associated with an IP address (admin only)
+ *     summary: Ban accounts by user's IP
+ *     description: Ban all accounts associated with a user's IP address (admin only)
  *     tags:
  *       - Administration
  *     parameters:
  *       - in: path
- *         name: ip
+ *         name: id
  *         required: true
  *         schema:
- *           type: string
- *         description: IP address whose accounts to ban
+ *           type: integer
+ *         description: ID of user whose IP's accounts to ban
  *     responses:
  *       200:
  *         description: Accounts banned successfully
@@ -2241,25 +2247,114 @@ app.get('/api/v1/ip-bans', requireApiRole(100), async (req, res) => {
  *                   type: string
  *                 bannedCount:
  *                   type: integer
- *       400:
- *         description: Invalid IP address
  *       401:
  *         description: Authentication required
  *       403:
  *         description: Insufficient permissions
+ *       404:
+ *         description: User not found or no IP associated
  */
-app.post('/api/v1/ip-bans/:ip', requireApiRole(100), async (req, res) => {
-  const ip = req.params.ip;
-  if (!ip || !ip.match(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/)) {
-    return res.status(400).json({ error: 'Invalid IP address format' });
+/**
+ * @swagger
+ * /api/v1/users/{id}/ban-individual:
+ *   post:
+ *     security:
+ *       - cookieAuth: []
+ *     summary: Ban a specific user account
+ *     description: Ban a specific user account without affecting other accounts with the same IP (admin only)
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: User ID to ban
+ *     responses:
+ *       200:
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Insufficient permissions
+ *       404:
+ *         description: User not found
+ */
+app.post('/api/v1/users/:id/ban-individual', requireApiRole(100), async (req, res) => {
+  const userId = parseInt(req.params.id);
+  if (!userId) {
+    return res.status(400).json({ error: 'Invalid user ID' });
   }
 
   try {
-    const bannedCount = await db.bannedIps.banAccountsByIp(ip, req.user.id);
+    // Get user info
+    const user = await db.users.getById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Prevent banning admin user
+    if (user.username === 'admin') {
+      return res.status(403).json({ error: 'Cannot ban the admin user' });
+    }
+
+    // Prevent users from banning themselves
+    if (req.user.id === userId) {
+      return res.status(403).json({ error: 'Cannot ban your own account' });
+    }
+
+    // Update user status to suspended
+    await db.users.modifyStatus(userId, 'suspended');
+
     res.status(200).json({ 
-      message: `Successfully banned ${bannedCount} accounts associated with this IP`,
-      bannedCount 
+      message: `Successfully banned user: ${user.username}` 
     });
+  } catch (error) {
+    console.error('Error banning user:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/api/v1/users/:id/ban-ip-accounts', requireApiRole(100), async (req, res) => {
+  const userId = parseInt(req.params.id);
+  if (!userId) {
+    return res.status(400).json({ error: 'Invalid user ID' });
+  }
+
+  try {
+    // Get user info to get their IP
+    const user = await db.users.getById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (!user.ip) {
+      return res.status(400).json({ 
+        error: 'User has no IP address recorded', 
+        message: 'Cannot ban accounts by IP - no IP address is associated with this user'
+      });
+    }
+
+    // Get the hashed IP from database and ban all accounts with this hashed IP
+    // Note: user.ip is already hashed when stored in database
+    const bannedCount = await db.bannedIps.banAccountsByHashedIp(user.ip, req.user.id);
+    
+    if (bannedCount === 0) {
+      res.status(200).json({ 
+        message: 'No additional accounts found with this IP address (user may be the only account with this IP)',
+        bannedCount: 0 
+      });
+    } else {
+      res.status(200).json({ 
+        message: `Successfully banned ${bannedCount} accounts associated with this user's IP`,
+        bannedCount 
+      });
+    }
   } catch (error) {
     console.error('Error banning accounts:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -2268,21 +2363,21 @@ app.post('/api/v1/ip-bans/:ip', requireApiRole(100), async (req, res) => {
 
 /**
  * @swagger
- * /api/v1/ip-bans/{ip}:
- *   delete:
+ * /api/v1/users/{id}/unban-ip-accounts:
+ *   post:
  *     security:
  *       - cookieAuth: []
- *     summary: Unban accounts by IP
- *     description: Unban all accounts associated with an IP address (admin only)
+ *     summary: Unban accounts by user's IP
+ *     description: Unban all accounts associated with a user's IP address (admin only)
  *     tags:
  *       - Administration
  *     parameters:
  *       - in: path
- *         name: ip
+ *         name: id
  *         required: true
  *         schema:
- *           type: string
- *         description: IP address whose accounts to unban
+ *           type: integer
+ *         description: ID of user whose IP's accounts to unban
  *     responses:
  *       200:
  *         description: Accounts unbanned successfully
@@ -2295,23 +2390,37 @@ app.post('/api/v1/ip-bans/:ip', requireApiRole(100), async (req, res) => {
  *                   type: string
  *                 unbannedCount:
  *                   type: integer
- *       400:
- *         description: Invalid IP address
  *       401:
  *         description: Authentication required
  *       403:
  *         description: Insufficient permissions
+ *       404:
+ *         description: User not found or no IP associated
  */
-app.delete('/api/v1/ip-bans/:ip', requireApiRole(100), async (req, res) => {
-  const ip = req.params.ip;
-  if (!ip || !ip.match(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/)) {
-    return res.status(400).json({ error: 'Invalid IP address format' });
+app.post('/api/v1/users/:id/unban-ip-accounts', requireApiRole(100), async (req, res) => {
+  const userId = parseInt(req.params.id);
+  if (!userId) {
+    return res.status(400).json({ error: 'Invalid user ID' });
   }
 
   try {
-    const unbannedCount = await db.bannedIps.unbanAccountsByIp(ip);
+    // Get user info to get their IP
+    const user = await db.users.getById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (!user.ip) {
+      return res.status(400).json({ 
+        error: 'User has no IP address recorded', 
+        message: 'Cannot unban accounts by IP - no IP address is associated with this user'
+      });
+    }
+
+    // Unban all accounts with this hashed IP
+    const unbannedCount = await db.bannedIps.unbanAccountsByHashedIp(user.ip);
     res.status(200).json({ 
-      message: `Successfully unbanned ${unbannedCount} accounts associated with this IP`,
+      message: `Successfully unbanned ${unbannedCount} accounts associated with this user's IP`,
       unbannedCount 
     });
   } catch (error) {
