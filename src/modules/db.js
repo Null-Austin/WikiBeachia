@@ -44,7 +44,8 @@ const _db = new class{
                 display_name TEXT UNIQUE,
                 account_status TEXT DEFAULT 'active',
                 type TEXT DEFAULT 'user',
-                bio TEXT DEFAULT 'This is the default user bio, you should change this :)'
+                bio  TEXT DEFAULT 'This is the default user bio, you should change this :)',
+                ip TEXT DEFAULT NULL
             );
 
             CREATE TABLE IF NOT EXISTS applications (
@@ -90,7 +91,7 @@ const _db = new class{
                 ('logging','true','Is logging enabled?');
         `;
         // Check if 'bio' column exists, and add it if not
-        return new Promise((resolve, reject) => {
+        new Promise((resolve, reject) => {
             this.db.exec(sql, err => {
                 if (err) return reject(err);
                 this.db.all("PRAGMA table_info(users);", (err, columns) => {
@@ -98,6 +99,25 @@ const _db = new class{
                     const hasBio = columns.some(col => col.name === 'bio');
                     if (!hasBio) {
                         this.db.run("ALTER TABLE users ADD COLUMN bio TEXT DEFAULT 'This is the default user bio, you should change this :)';", err2 => {
+                            if (err2) return reject(err2);
+                            // After adding bio column, check for last_edited_by column in pages table
+                            this.checkAndAddLastEditedBy(resolve, reject);
+                        });
+                    } else {
+                        // Bio column exists, check for last_edited_by column
+                        this.checkAndAddLastEditedBy(resolve, reject);
+                    }
+                });
+            });
+        });
+        new Promise((resolve, reject) => {
+            this.db.exec(sql, err => {
+                if (err) return reject(err);
+                this.db.all("PRAGMA table_info(users);", (err, columns) => {
+                    if (err) return reject(err);
+                    const hasBio = columns.some(col => col.name === 'ip');
+                    if (!hasBio) {
+                        this.db.run("ALTER TABLE users ADD COLUMN ip TEXT DEFAULT null;", err2 => {
                             if (err2) return reject(err2);
                             // After adding bio column, check for last_edited_by column in pages table
                             this.checkAndAddLastEditedBy(resolve, reject);
