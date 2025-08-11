@@ -99,7 +99,8 @@ const _db = new class{
                 ('site_name', 'WikiBeachia', 'The name of the wiki'),
                 ('admin_account_enabled', 'true', 'please make your own admin account in prod'),
                 ('icon','icon.png','uh, icon url :)'),
-                ('logging','true','Is logging enabled?');
+                ('logging','true','Is logging enabled?'),
+                ('applications','true','is registration application based?');
         `;
         // Check if 'bio' column exists, and add it if not
         new Promise((resolve, reject) => {
