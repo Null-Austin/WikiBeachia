@@ -47,8 +47,16 @@ const _db = new class{
                 display_name TEXT UNIQUE,
                 account_status TEXT DEFAULT 'active',
                 type TEXT DEFAULT 'user',
-                bio  TEXT DEFAULT 'This is the default user bio, you should change this :)',
-                ip TEXT DEFAULT NULL
+                bio  TEXT DEFAULT 'This is the default user bio, you should change this :)'
+            );
+            
+            CREATE TABLE IF NOT EXISTS banned_ips (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ip TEXT UNIQUE NOT NULL,
+                banned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                banned_by INTEGER,
+                reason TEXT,
+                FOREIGN KEY(banned_by) REFERENCES users(id)
             );
 
             CREATE TABLE IF NOT EXISTS applications (
@@ -320,37 +328,68 @@ const _db = new class{
             });
         }
     }();
-    users = new class{
-        constructor(){
+    bannedIps = new class {
+        constructor() {
             this.db = db;
             this.bannedIpCache = new Set();
             this.cacheLoaded = false;
         }
+
         async loadBannedIpCache() {
             return new Promise((resolve, reject) => {
-                this.db.all("SELECT ip FROM users WHERE account_status = 'banned' AND ip IS NOT NULL", (err, rows) => {
+                this.db.all("SELECT ip FROM banned_ips", (err, rows) => {
                     if (err) return reject(err);
-                    rows.forEach(row => {
-                        if (row.ip) this.bannedIpCache.add(row.ip);
-                    });
+                    rows.forEach(row => this.bannedIpCache.add(row.ip));
                     this.cacheLoaded = true;
                     resolve();
                 });
             });
         }
-        async ipbanned(ip) {
+
+        async banIp(ip, userId, reason = null) {
+            const hashedIp = _db.hashIP(ip);
+            return new Promise((res, rej) => {
+                this.db.prepare('INSERT OR REPLACE INTO banned_ips (ip, banned_by, reason) VALUES (?, ?, ?)')
+                    .run(hashedIp, userId, reason, function(err) {
+                        if (err) return rej(err);
+                        this.bannedIpCache.add(hashedIp);
+                        res(this.lastID);
+                    });
+            });
+        }
+
+        async unbanIp(ip) {
+            const hashedIp = _db.hashIP(ip);
+            return new Promise((res, rej) => {
+                this.db.prepare('DELETE FROM banned_ips WHERE ip = ?')
+                    .run(hashedIp, function(err) {
+                        if (err) return rej(err);
+                        this.bannedIpCache.delete(hashedIp);
+                        res(this.changes);
+                    });
+            });
+        }
+
+        async isIpBanned(ip) {
             const hashedIp = _db.hashIP(ip);
             if (!this.cacheLoaded) await this.loadBannedIpCache();
             return this.bannedIpCache.has(hashedIp);
         }
-        async setIP(userid, ip) {
-            const hashedIp = _db.hashIP(ip);
+
+        async getBannedIps() {
             return new Promise((res, rej) => {
-                this.db.run("UPDATE users SET ip = ? WHERE id = ?", hashedIp, userid, function(err) {
-                    if (err) return rej(err);
-                    res(this.changes);
-                });
+                this.db.prepare('SELECT b.*, u.username as banned_by_username FROM banned_ips b LEFT JOIN users u ON b.banned_by = u.id')
+                    .all((err, rows) => {
+                        if (err) return rej(err);
+                        res(rows);
+                    });
             });
+        }
+    }();
+
+    users = new class{
+        constructor(){
+            this.db = db;
         }
         async modifyUser(userid,displayname,bio){
             return new Promise((res,rej)=>{
