@@ -321,6 +321,14 @@ const _db = new class{
         constructor(){
             this.db = db;
         }
+        async setIP(userid,ip){
+            return new Promise((res,rej)=>{
+                this.db.prepare(`UPDATE users SET ip = ? WHERE id = ?`).run(ip,userid).run(ip,userid,function(err){
+                    if(this.changes === 0) return rej(new Error('User not found'))
+                    res(this.changes)
+                })
+            })
+        }
         async modifyUser(userid,displayname,bio){
             return new Promise((res,rej)=>{
                 this.db.prepare('UPDATE users SET display_name = ?, bio = ? WHERE id = ?').run(displayname,bio,userid,function(err){
