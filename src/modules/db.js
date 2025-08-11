@@ -321,7 +321,17 @@ const _db = new class{
         constructor(){
             this.db = db;
         }
+        async ipbanned(ip){
+            ip = hash(ip)
+            return new Promise((resolve, reject) => {
+                this.db.prepare("SELECT COUNT(*) AS count FROM users WHERE ip = ? AND account_status = 'banned'").get(ip, (err, row) => {
+                    if (err) return reject(err);
+                    resolve(row.count > 0);
+                });
+            });
+        }
         async setIP(userid,ip){
+            ip = hash(ip)
             return new Promise((res,rej)=>{
                 this.db.prepare(`UPDATE users SET ip = ? WHERE id = ?`).run(ip,userid).run(ip,userid,function(err){
                     if(this.changes === 0) return rej(new Error('User not found'))
