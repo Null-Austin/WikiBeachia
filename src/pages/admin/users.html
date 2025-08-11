@@ -186,6 +186,8 @@
             <a href="javascript:void(0)" class="btn btn-edit" id="edit-profile-btn" onclick="toggleEditMode()">Edit Profile</a>
             <h2>Immediate actions</h2>
             <a href="javascript:void(0)" class="btn btn-delete" onclick="suspendUser()">Suspend / Unsuspend</a>
+            <a href="javascript:void(0)" class="btn btn-delete" onclick="ipban()">IP ban</a>
+            <a href="javascript:void(0)" class="btn btn-delete" onclick="ipbanalts()">IP ban alts</a>
             <a href="javascript:void(0)" class="btn btn-edit" onclick="resetToken()">Reset Token</a>
             <a href="javascript:void(0)" class="btn btn-edit" onclick="resetPassword()">Reset Password</a>
         </div>  
@@ -498,6 +500,72 @@
                     }
                 } catch (error) {
                     console.error('Error suspending/unsuspending user:', error);
+                    alert('Error: ' + error.message);
+                }
+            }
+        }
+        async function ipban(userId) {
+            if (!userId && window.currentUserId) {
+                userId = window.currentUserId;
+            }
+            if (!userId) {
+                alert('No user ID provided');
+                return;
+            }
+            
+            if (confirm('Are you sure you want to ip ban user ID: ' + userId + '?')) {
+                try {
+                    const response = await fetch(`/api/v1/users/${userId}/ipban`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        alert(result.message);
+                        // Refresh the page to show updated status
+                        window.location.reload();
+                    } else {
+                        alert('Error: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('Error ip banning user:', error);
+                    alert('Error: ' + error.message);
+                }
+            }
+        }
+        async function ipbanalts(userId) {
+            if (!userId && window.currentUserId) {
+                userId = window.currentUserId;
+            }
+            if (!userId) {
+                alert('No user ID provided');
+                return;
+            }
+            
+            if (confirm('Are you sure you want to ban all user ID\'s associated with the ip? userid: ' + userId + '?')) {
+                try {
+                    const response = await fetch(`/api/v1/users/${userId}/ipbanalts`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        alert(result.message);
+                        // Refresh the page to show updated status
+                        window.location.reload();
+                    } else {
+                        alert('Error: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('Error ip banning users:', error);
                     alert('Error: ' + error.message);
                 }
             }
