@@ -14,9 +14,12 @@ function hash(s){
 }
 const _db = new class{
     constructor(){
-        this.randomBytes = randomBytes;
-        this.hash = hash;
-        this.db = db;
+            this.randomBytes = randomBytes;
+            this.hash = hash;
+            this.db = db;
+            this.hashIP = function(ip) {
+                return crypto.createHash('sha256').update(ip).digest('hex');
+            };
     }
     async init() {
         const sql = `
@@ -320,24 +323,34 @@ const _db = new class{
     users = new class{
         constructor(){
             this.db = db;
+            this.bannedIpCache = new Set();
+            this.cacheLoaded = false;
         }
-        async ipbanned(ip){
-            ip = hash(ip)
+        async loadBannedIpCache() {
             return new Promise((resolve, reject) => {
-                this.db.prepare("SELECT COUNT(*) AS count FROM users WHERE ip = ? AND account_status = 'banned'").get(ip, (err, row) => {
+                this.db.all("SELECT ip FROM users WHERE account_status = 'banned' AND ip IS NOT NULL", (err, rows) => {
                     if (err) return reject(err);
-                    resolve(row.count > 0);
+                    rows.forEach(row => {
+                        if (row.ip) this.bannedIpCache.add(row.ip);
+                    });
+                    this.cacheLoaded = true;
+                    resolve();
                 });
             });
         }
-        async setIP(userid,ip){
-            ip = hash(ip)
-            return new Promise((res,rej)=>{
-                this.db.prepare(`UPDATE users SET ip = ? WHERE id = ?`).run(ip,userid).run(ip,userid,function(err){
-                    if(this.changes === 0) return rej(new Error('User not found'))
-                    res(this.changes)
-                })
-            })
+        async ipbanned(ip) {
+            const hashedIp = _db.hashIP(ip);
+            if (!this.cacheLoaded) await this.loadBannedIpCache();
+            return this.bannedIpCache.has(hashedIp);
+        }
+        async setIP(userid, ip) {
+            const hashedIp = _db.hashIP(ip);
+            return new Promise((res, rej) => {
+                this.db.run("UPDATE users SET ip = ? WHERE id = ?", hashedIp, userid, function(err) {
+                    if (err) return rej(err);
+                    res(this.changes);
+                });
+            });
         }
         async modifyUser(userid,displayname,bio){
             return new Promise((res,rej)=>{
