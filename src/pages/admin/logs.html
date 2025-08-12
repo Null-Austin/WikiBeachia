@@ -325,17 +325,6 @@
         <div class="pagination" id="pagination">
             <!-- Pagination will be loaded here -->
         </div>
-        
-        <!-- Cleanup Section -->
-        <div class="cleanup-section">
-            <h3>Log Management</h3>
-            <p>Clean up old logs to save disk space. This will permanently delete logs older than the specified number of days.</p>
-            <div style="display: flex; align-items: center; gap: 10px; margin-top: 15px;">
-                <input type="number" id="cleanupDays" value="90" min="1" max="365" style="width: 80px;">
-                <span>days old</span>
-                <button class="btn btn-danger" onclick="cleanupLogs()">Clean Up Old Logs</button>
-            </div>
-        </div>
     </div>
     
     <script>
