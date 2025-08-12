@@ -296,7 +296,13 @@ app.get('/login',(req,res)=>{
   renderForm(res, req, formConfig);
 })
 app.get('/register',(req,res)=>{
-  const formConfig = forms.getFormConfig('register');
+  console.log(settings.applications)
+  let form = 'register-register'
+  if (settings.applications == 'true'){
+    form = 'register-application'
+  }
+  const formConfig = forms.getFormConfig(form)
+
   renderForm(res, req, formConfig);
 })
 app.get('/articles',async (req,res)=>{
@@ -1350,6 +1356,149 @@ app.post('/api/v1/users/apply', authLimiter, async (req, res) => {
     res.status(500).json({ error: 'We encountered an issue while processing your application. Please try again later.' });
   }
 });
+
+/**
+ * @swagger
+ * /api/v1/users/create:
+ *   post:
+ *     summary: Create user account
+ *     description: Create a new user account directly (only allowed if applications are disabled or user has admin role)
+ *     tags:
+ *       - User Management
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - email
+ *               - password
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: username
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: email
+ *               password:
+ *                 type: string
+ *                 description: password
+ *               returnTo:
+ *                 type: string
+ *                 description: where to go after
+ *     responses:
+ *       201:
+ *         description: account created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 redirectUrl:
+ *                   type: string
+ *       400:
+ *         description: bad info or validation failed
+ *       401:
+ *         description: need login (if applications enabled)
+ *       403:
+ *         description: account creation not allowed
+ *       429:
+ *         description: too many attempts
+ *       500:
+ *         description: server error
+ */
+app.post('/api/v1/users/create', authLimiter, async (req, res) => {
+  const body = req.body;
+  
+  // Check if user creation is allowed
+  const applicationsEnabled = settings.applications === 'true';
+  const isAdmin = req.user && req.user.role >= 100;
+  
+  if (applicationsEnabled && !isAdmin) {
+    return res.status(403).json({ error: 'Direct account creation is not allowed. Please use the application process instead.' });
+  }
+  
+  if (!body || !body.username || !body.email || !body.password) {
+    return res.status(400).json({ error: 'Please fill in all required fields.' });
+  }
+  
+  const { username, email, password, returnTo } = body;
+  
+  // Validate input using the same schema as applications
+  const { error, value } = schemas.registrationSchema.validate({ 
+    username, 
+    email, 
+    password, 
+    reason: 'Direct registration' // dummy reason for validation
+  });
+  
+  if (error) {
+    return res.status(400).json({ error: error.details[0].message });
+  }
+  
+  try {
+    // Check if username already exists
+    let existingUser = null;
+    try {
+      existingUser = await db.users.getByUsername(username);
+    } catch (error) {
+      // If user not found, that's what we want - we can create the user
+      if (error.message !== 'User not found') {
+        throw error; // Re-throw if it's a different error
+      }
+    }
+    
+    if (existingUser) {
+      return res.status(400).json({ error: 'Username already exists. Please choose a different username.' });
+    }
+    
+    // Hash password and create user
+    const hashedPassword = db.hash(password);
+    await db.users.create(username, hashedPassword, username, 10); // role 10 for regular wikian
+    
+    // Set IP for the new user if available
+    if (req.ip) {
+      try {
+        const newUser = await db.users.getByUsername(username);
+        if (newUser) {
+          await db.users.setIP(newUser.id, req.ip);
+        }
+      } catch (error) {
+        // If we can't get the user we just created, log it but don't fail the request
+        console.error('Failed to set IP for new user:', error.message);
+      }
+    }
+    
+    // Clear any previous returnTo cookie
+    res.clearCookie('returnTo');
+    
+    // Determine redirect URL
+    let redirectUrl = '/login';
+    if (returnTo && returnTo.startsWith('/')) {
+      redirectUrl = returnTo;
+    } else if (req.cookies.returnTo && req.cookies.returnTo.startsWith('/')) {
+      redirectUrl = req.cookies.returnTo;
+    }
+    
+    res.status(201).json({ 
+      message: 'Account created successfully! You can now log in with your credentials.', 
+      redirectUrl: redirectUrl 
+    });
+    
+  } catch(err) {
+    console.error('Error creating user account:', err);
+    if (err.message && err.message.includes('UNIQUE constraint failed')) {
+      return res.status(400).json({ error: 'Username or email already exists. Please choose different credentials.' });
+    }
+    res.status(500).json({ error: 'We encountered an issue while creating your account. Please try again later.' });
+  }
+});
+
 /**
  * @swagger
  * /api/v1/users/register:
