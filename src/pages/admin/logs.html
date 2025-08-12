@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= wiki.site_name %> | System Logs</title>
+    <link rel="stylesheet" href="/css/theme-global.css">
+    <link rel="stylesheet" href="/css/index.css">
+    <link rel="stylesheet" href="/css/theme-regular.css">
+    <link rel="stylesheet" href="/css/md.css">
+    <script src="/js/notifications.js"></script>
+    <style>
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+            gap: 10px;
+        }
+        .pagination a, .pagination span {
+            padding: 8px 12px;
+            text-decoration: none;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            color: #333;
+        }
+        .pagination a:hover {
+            background-color: #f5f5f5;
+        }
+        .pagination .current {
+            background-color: #007cba;
+            color: white;
+            border-color: #007cba;
+        }
+        .pagination .disabled {
+            color: #999;
+            cursor: not-allowed;
+        }
+        .log-info {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+        .log-action {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        .action-login { background-color: #d4edda; color: #155724; }
+        .action-logout { background-color: #f8d7da; color: #721c24; }
+        .action-page { background-color: #d1ecf1; color: #0c5460; }
+        .action-admin { background-color: #fff3cd; color: #856404; }
+        .action-security { background-color: #f5c6cb; color: #721c24; }
+        .action-user { background-color: #e2e3e5; color: #383d41; }
+        .action-media { background-color: #c3e6cb; color: #1e7e34; }
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        .btn {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+            text-decoration: none;
+            display: inline-block;
+            color: white;
+            font-weight: bold;
+        }
+        .btn-primary {
+            background-color: #007cba;
+            color: white;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.8;
+        }
+
+        #log-details-modal{
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 100;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        #log-details-modal>div{
+            background-color: rgb(224, 224, 224);
+            width: 70%;
+            max-width: 800px;
+            min-width: 400px;
+            height: auto;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 25px;
+            border: 2px rgb(39, 39, 39) solid;
+            border-radius: 5px;
+        }
+        @media (max-width: 768px) {
+            #log-details-modal>div {
+                width: 90%;
+                min-width: unset;
+                margin: 10px;
+            }
+        }
+
+        .filter-section {
+            background: #cfb9a2;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .filter-group label {
+            font-size: 0.9em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .filter-group select, .filter-group input {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            min-width: 150px;
+        }
+        
+        .filter-group select:focus, .filter-group input:focus {
+            outline: none;
+            border-color: #007cba;
+            box-shadow: 0 0 3px rgba(0, 124, 186, 0.3);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #007cba;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .cleanup-section {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .cleanup-section h3 {
+            color: #856404;
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="log-details-modal">
+        <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2>Log Details</h2>
+                <button class="btn btn-secondary" onclick="closeLogModal()">✕ Close</button>
+            </div>
+            <div id="log-modal-content">
+                <!-- Log details will be populated here -->
+            </div>
+        </div>  
+    </div>
+    
+    <%- header %>
+    <div id="main-content">
+        <h1>System Logs</h1>
+        
+        <!-- Quick Stats (Hidden by default) -->
+        <div class="stats-grid" id="stats-section" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-number" id="total-logs">0</div>
+                <div class="stat-label">Total Logs (30 days)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="unique-users">0</div>
+                <div class="stat-label">Active Users</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="login-attempts">0</div>
+                <div class="stat-label">Login Attempts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="security-events">0</div>
+                <div class="stat-label">Security Events</div>
+            </div>
+        </div>
+        
+        <!-- Filters -->
+        <div class="filter-section">
+            <h3>Filter Logs</h3>
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="actionFilter">Action Type</label>
+                    <select id="actionFilter">
+                        <option value="">All Actions</option>
+                        <option value="login">Login</option>
+                        <option value="logout">Logout</option>
+                        <option value="page_view">Page Views</option>
+                        <option value="page_create">Page Creation</option>
+                        <option value="page_edit">Page Editing</option>
+                        <option value="page_delete">Page Deletion</option>
+                        <option value="user_suspend">User Suspension</option>
+                        <option value="admin_settings_update">Settings Updates</option>
+                        <option value="security_ip_ban">IP Bans</option>
+                        <option value="media_upload">Media Uploads</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="userIdFilter">User ID</label>
+                    <input type="number" id="userIdFilter" placeholder="Enter User ID" min="0">
+                </div>
+                
+                <div class="filter-group">
+                    <label>&nbsp;</label>
+                    <label style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="securityOnlyFilter">
+                        Security Events Only
+                    </label>
+                </div>
+                
+                <div class="filter-group">
+                    <label>&nbsp;</label>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-primary" onclick="loadLogs(1)">Apply Filters</button>
+                        <button class="btn btn-secondary" onclick="clearFilters()">Clear</button>
+                        <button class="btn btn-primary" onclick="toggleStats()" id="statsBtn">Show Stats</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Log Info -->
+        <div class="log-info" id="log-info">
+            <p>Loading logs...</p>
+        </div>
+
+        <!-- Logs Table -->
+        <div id="logs-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>Target</th>
+                        <th>Details</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="logs-tbody">
+                    <!-- Logs will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        <div class="pagination" id="pagination">
+            <!-- Pagination will be loaded here -->
+        </div>
+        
+        <!-- Cleanup Section -->
+        <div class="cleanup-section">
+            <h3>Log Management</h3>
+            <p>Clean up old logs to save disk space. This will permanently delete logs older than the specified number of days.</p>
+            <div style="display: flex; align-items: center; gap: 10px; margin-top: 15px;">
+                <input type="number" id="cleanupDays" value="90" min="1" max="365" style="width: 80px;">
+                <span>days old</span>
+                <button class="btn btn-danger" onclick="cleanupLogs()">Clean Up Old Logs</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentPage = 1;
+        let currentFilters = {};
+        let statsVisible = false;
+        
+        // Load logs on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadLogs(1);
+        });
+        
+        function getFilters() {
+            return {
+                action: document.getElementById('actionFilter').value || null,
+                user_id: document.getElementById('userIdFilter').value || null,
+                security_only: document.getElementById('securityOnlyFilter').checked
+            };
+        }
+        
+        function clearFilters() {
+            document.getElementById('actionFilter').value = '';
+            document.getElementById('userIdFilter').value = '';
+            document.getElementById('securityOnlyFilter').checked = false;
+            loadLogs(1);
+        }
+        
+        async function loadLogs(page = 1) {
+            currentPage = page;
+            currentFilters = getFilters();
+            
+            const params = new URLSearchParams({ page: page, limit: 25 });
+            if (currentFilters.action) params.append('action', currentFilters.action);
+            if (currentFilters.user_id) params.append('user_id', currentFilters.user_id);
+            if (currentFilters.security_only) params.append('security_only', 'true');
+            
+            document.getElementById('log-info').innerHTML = '<p>Loading logs...</p>';
+            
+            try {
+                const response = await fetch(`/api/v1/logs?${params}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayLogs(data.logs);
+                    displayPagination(data.pagination);
+                    updateLogInfo(data.pagination);
+                } else {
+                    console.error('Error loading logs:', data.error);
+                    document.getElementById('log-info').innerHTML = `<p style="color: red;">Error loading logs: ${data.error}</p>`;
+                }
+            } catch (error) {
+                console.error('Network error:', error);
+                document.getElementById('log-info').innerHTML = '<p style="color: red;">Network error loading logs</p>';
+            }
+        }
+        
+        function updateLogInfo(pagination) {
+            const totalLogs = pagination.totalLogs || 0;
+            const currentPage = pagination.currentPage || 1;
+            const totalPages = pagination.totalPages || 1;
+            
+            document.getElementById('log-info').innerHTML = 
+                `<p>Total Logs: <strong>${totalLogs.toLocaleString()}</strong> | Page <strong>${currentPage}</strong> of <strong>${totalPages}</strong></p>`;
+        }
+        
+        async function toggleStats() {
+            const statsSection = document.getElementById('stats-section');
+            const statsBtn = document.getElementById('statsBtn');
+            
+            if (statsVisible) {
+                statsSection.style.display = 'none';
+                statsBtn.textContent = 'Show Stats';
+                statsVisible = false;
+            } else {
+                await loadStats();
+                statsSection.style.display = 'grid';
+                statsBtn.textContent = 'Hide Stats';
+                statsVisible = true;
+            }
+        }
+        
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/v1/logs/stats');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const stats = data.stats;
+                    
+                    // Calculate summary stats
+                    let totalLogs = 0;
+                    let uniqueUsers = new Set();
+                    let loginAttempts = 0;
+                    let securityEvents = 0;
+                    
+                    stats.forEach(stat => {
+                        totalLogs += stat.count;
+                        if (stat.unique_users) uniqueUsers.add(stat.unique_users);
+                        if (stat.action.includes('login')) loginAttempts += stat.count;
+                        if (stat.action.includes('security') || stat.action.includes('ban') || stat.action.includes('suspend')) {
+                            securityEvents += stat.count;
+                        }
+                    });
+                    
+                    document.getElementById('total-logs').textContent = totalLogs.toLocaleString();
+                    document.getElementById('unique-users').textContent = uniqueUsers.size.toLocaleString();
+                    document.getElementById('login-attempts').textContent = loginAttempts.toLocaleString();
+                    document.getElementById('security-events').textContent = securityEvents.toLocaleString();
+                } else {
+                    console.error('Error loading stats:', data.error);
+                    alert('Error loading statistics');
+                }
+            } catch (error) {
+                console.error('Network error:', error);
+                alert('Network error loading statistics');
+            }
+        }
+        
+        function displayLogs(logs) {
+            const tbody = document.getElementById('logs-tbody');
+            tbody.innerHTML = '';
+            
+            if (logs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">No logs found matching your criteria.</td></tr>';
+                return;
+            }
+            
+            logs.forEach(log => {
+                const row = document.createElement('tr');
+                
+                // Format timestamp
+                const timestamp = new Date(log.timestamp).toLocaleString();
+                
+                // Determine action class for styling
+                let actionClass = 'action-page';
+                if (log.action.includes('login')) actionClass = 'action-login';
+                else if (log.action.includes('logout')) actionClass = 'action-logout';
+                else if (log.action.includes('admin')) actionClass = 'action-admin';
+                else if (log.action.includes('security') || log.action.includes('ban')) actionClass = 'action-security';
+                else if (log.action.includes('user')) actionClass = 'action-user';
+                else if (log.action.includes('media')) actionClass = 'action-media';
+                
+                // Build target info
+                let targetInfo = '';
+                if (log.target_username) targetInfo += `${log.target_username}`;
+                if (log.target_resource) targetInfo += targetInfo ? ` | ${log.target_resource}` : `${log.target_resource}`;
+                if (!targetInfo) targetInfo = '-';
+                
+                // Truncate details for display
+                let displayDetails = log.details || '-';
+                if (displayDetails.length > 50) {
+                    displayDetails = displayDetails.substring(0, 50) + '...';
+                }
+                
+                row.innerHTML = `
+                    <td style="font-size: 0.9em;">${timestamp}</td>
+                    <td>${log.user_username || `ID:${log.userid}` || 'System'}</td>
+                    <td><span class="log-action ${actionClass}">${log.action}</span></td>
+                    <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis;">${targetInfo}</td>
+                    <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">${displayDetails}</td>
+                    <td>
+                        <button class="btn btn-primary" onclick="viewLogDetails(${JSON.stringify(log).replace(/"/g, '&quot;')})">View</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        function viewLogDetails(log) {
+            const modalContent = document.getElementById('log-modal-content');
+            
+            // Format timestamp
+            const timestamp = new Date(log.timestamp).toLocaleString();
+            
+            // Build target info
+            let targetInfo = '';
+            if (log.target_username) targetInfo += `<strong>Target User:</strong> ${log.target_username}<br>`;
+            if (log.target_resource) targetInfo += `<strong>Target Resource:</strong> ${log.target_resource}<br>`;
+            
+            modalContent.innerHTML = `
+                <p><strong>ID:</strong> ${log.id}</p>
+                <p><strong>Timestamp:</strong> ${timestamp}</p>
+                <p><strong>User:</strong> ${log.user_username || `ID: ${log.userid}` || 'System'}</p>
+                <p><strong>Action:</strong> ${log.action}</p>
+                ${targetInfo}
+                <p><strong>Details:</strong> ${log.details || 'No details available'}</p>
+                <p><strong>IP Hash:</strong> ${log.ip_hash || 'Not recorded'}</p>
+            `;
+            
+            document.getElementById('log-details-modal').style.display = 'flex';
+        }
+        
+        function closeLogModal() {
+            document.getElementById('log-details-modal').style.display = 'none';
+        }
+        
+        function displayPagination(pagination) {
+            const paginationDiv = document.getElementById('pagination');
+            paginationDiv.innerHTML = '';
+            
+            if (pagination.totalPages <= 1) return;
+            
+            // First page
+            if (pagination.hasPrevPage) {
+                const firstLink = document.createElement('a');
+                firstLink.href = '#';
+                firstLink.textContent = '« First';
+                firstLink.onclick = (e) => { e.preventDefault(); loadLogs(1); };
+                paginationDiv.appendChild(firstLink);
+                
+                const prevLink = document.createElement('a');
+                prevLink.href = '#';
+                prevLink.textContent = '‹ Previous';
+                prevLink.onclick = (e) => { e.preventDefault(); loadLogs(currentPage - 1); };
+                paginationDiv.appendChild(prevLink);
+            } else {
+                const disabledFirst = document.createElement('span');
+                disabledFirst.textContent = '« First';
+                disabledFirst.className = 'disabled';
+                paginationDiv.appendChild(disabledFirst);
+                
+                const disabledPrev = document.createElement('span');
+                disabledPrev.textContent = '‹ Previous';
+                disabledPrev.className = 'disabled';
+                paginationDiv.appendChild(disabledPrev);
+            }
+            
+            // Page numbers
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(pagination.totalPages, currentPage + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                if (i === currentPage) {
+                    const currentSpan = document.createElement('span');
+                    currentSpan.textContent = i;
+                    currentSpan.className = 'current';
+                    paginationDiv.appendChild(currentSpan);
+                } else {
+                    const pageLink = document.createElement('a');
+                    pageLink.href = '#';
+                    pageLink.textContent = i;
+                    pageLink.onclick = (e) => { e.preventDefault(); loadLogs(i); };
+                    paginationDiv.appendChild(pageLink);
+                }
+            }
+            
+            // Next/Last
+            if (pagination.hasNextPage) {
+                const nextLink = document.createElement('a');
+                nextLink.href = '#';
+                nextLink.textContent = 'Next ›';
+                nextLink.onclick = (e) => { e.preventDefault(); loadLogs(currentPage + 1); };
+                paginationDiv.appendChild(nextLink);
+                
+                const lastLink = document.createElement('a');
+                lastLink.href = '#';
+                lastLink.textContent = 'Last »';
+                lastLink.onclick = (e) => { e.preventDefault(); loadLogs(pagination.totalPages); };
+                paginationDiv.appendChild(lastLink);
+            } else {
+                const disabledNext = document.createElement('span');
+                disabledNext.textContent = 'Next ›';
+                disabledNext.className = 'disabled';
+                paginationDiv.appendChild(disabledNext);
+                
+                const disabledLast = document.createElement('span');
+                disabledLast.textContent = 'Last »';
+                disabledLast.className = 'disabled';
+                paginationDiv.appendChild(disabledLast);
+            }
+        }
+        
+        async function cleanupLogs() {
+            const days = parseInt(document.getElementById('cleanupDays').value);
+            if (!days || days < 1) {
+                alert('Please enter a valid number of days');
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to delete all logs older than ${days} days? This action cannot be undone.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/v1/logs/cleanup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ days: days })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert(`Successfully deleted ${data.deleted_count} old logs`);
+                    loadLogs(1); // Refresh the logs
+                } else {
+                    alert('Error cleaning up logs: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Network error:', error);
+                alert('Network error during cleanup');
+            }
+        }
+        
+        // Close modal when clicking outside of it
+        document.getElementById('log-details-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeLogModal();
+            }
+        });
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && document.getElementById('log-details-modal').style.display === 'flex') {
+                closeLogModal();
+            }
+        });
+    </script>
+</body>
+</html>

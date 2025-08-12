@@ -145,33 +145,157 @@ const _db = new class{
     
     checkAndAddLastEditedBy(resolve, reject) {
         this.db.all("PRAGMA table_info(pages);", (err, columns) => {
-            if (err) return reject(err);
+            if (err) return reject(err); 
             const hasLastEditedBy = columns.some(col => col.name === 'last_edited_by');
             if (!hasLastEditedBy) {
                 this.db.run("ALTER TABLE pages ADD COLUMN last_edited_by INTEGER;", err2 => {
                     if (err2) return reject(err2);
-                    resolve();
+                    // After adding last_edited_by, migrate logs table
+                    this.migrateLogs(resolve, reject);
+                });
+            } else {
+                // Column exists, migrate logs table
+                this.migrateLogs(resolve, reject);
+            }
+        });
+    }
+    
+    migrateLogs(resolve, reject) {
+        // Check and add new columns to logs table
+        this.db.all("PRAGMA table_info(logs);", (err, columns) => {
+            if (err) {
+                console.error('Failed to check logs table structure:', err);
+                return reject(err);
+            }
+            
+            const columnNames = columns.map(col => col.name);
+            const addColumns = [];
+            
+            if (!columnNames.includes('action')) {
+                addColumns.push("ALTER TABLE logs ADD COLUMN action TEXT DEFAULT 'page_view';");
+            }
+            if (!columnNames.includes('details')) {
+                addColumns.push("ALTER TABLE logs ADD COLUMN details TEXT DEFAULT NULL;");
+            }
+            if (!columnNames.includes('ip_hash')) {
+                addColumns.push("ALTER TABLE logs ADD COLUMN ip_hash TEXT DEFAULT NULL;");
+            }
+            if (!columnNames.includes('target_user')) {
+                addColumns.push("ALTER TABLE logs ADD COLUMN target_user INTEGER DEFAULT NULL;");
+            }
+            if (!columnNames.includes('target_resource')) {
+                addColumns.push("ALTER TABLE logs ADD COLUMN target_resource TEXT DEFAULT NULL;");
+            }
+            
+            // Execute column additions
+            if (addColumns.length > 0) {
+                let completed = 0;
+                const total = addColumns.length;
+                
+                addColumns.forEach(sql => {
+                    this.db.run(sql, (err) => {
+                        if (err) {
+                            console.error('Failed to add column:', err);
+                            return reject(err);
+                        }
+                        completed++;
+                        if (completed === total) {
+                            // After adding all columns, migrate existing data
+                            this.finalizeMigration(resolve, reject);
+                        }
+                    });
                 });
             } else {
                 resolve();
             }
         });
     }
+    
+    finalizeMigration(resolve, reject) {
+        // Migrate existing data
+        this.db.run(`
+            UPDATE logs 
+            SET target_resource = page, action = 'page_view' 
+            WHERE page IS NOT NULL AND (target_resource IS NULL OR target_resource = '')
+        `, (err) => {
+            if (err) {
+                console.error('Failed to migrate existing log data:', err);
+                return reject(err);
+            }
+            
+            console.log('Successfully migrated logs table to enhanced format');
+            
+            // Create indexes for better performance
+            const indexes = [
+                "CREATE INDEX IF NOT EXISTS idx_logs_userid ON logs(userid);",
+                "CREATE INDEX IF NOT EXISTS idx_logs_action ON logs(action);", 
+                "CREATE INDEX IF NOT EXISTS idx_logs_timestamp ON logs(timestamp);",
+                "CREATE INDEX IF NOT EXISTS idx_logs_target_user ON logs(target_user);"
+            ];
+            
+            let indexCompleted = 0;
+            indexes.forEach(sql => {
+                this.db.run(sql, (err) => {
+                    if (err) console.error('Failed to create index:', err);
+                    indexCompleted++;
+                    if (indexCompleted === indexes.length) {
+                        resolve();
+                    }
+                });
+            });
+        });
+    }
     logs = new class{
         constructor(){
             this.db = db;
         }
-        async add(uid, page){
+        // Enhanced logging with action types and details
+        async add(uid, action, details = null, ip = null, target_user = null, target_resource = null){
             return new Promise((res, rej) => {
-                this.db.prepare('INSERT INTO logs (userid, page) VALUES (?, ?)').run(uid, page, function(err){
+                this.db.prepare(
+                    'INSERT INTO logs (userid, action, details, ip_hash, target_user, target_resource, timestamp) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)'
+                ).run(uid, action, details, ip ? _db.hashIP(ip) : null, target_user, target_resource, function(err){
                     if (err) return rej(err);
                     res(this.lastID);
                 });
             });
         }
+        // Legacy method for backward compatibility - maps old page-based logging to new system
+        async addLegacy(uid, page){
+            return this.add(uid, 'page_view', null, null, null, page);
+        }
+        // Specific logging methods for different action types
+        async logAuth(uid, action, details, ip, success = true){
+            const actionType = success ? action : `${action}_failed`;
+            return this.add(uid, actionType, details, ip);
+        }
+        async logPageAction(uid, action, page_name, details = null, ip = null){
+            return this.add(uid, `page_${action}`, details, ip, null, page_name);
+        }
+        async logUserAction(uid, action, target_uid, details = null, ip = null){
+            return this.add(uid, `user_${action}`, details, ip, target_uid);
+        }
+        async logAdminAction(uid, action, details = null, ip = null, target = null){
+            return this.add(uid, `admin_${action}`, details, ip, null, target);
+        }
+        async logMediaAction(uid, action, filename, details = null, ip = null){
+            return this.add(uid, `media_${action}`, details, ip, null, filename);
+        }
+        async logSecurityAction(uid, action, details, ip, target_user = null){
+            return this.add(uid, `security_${action}`, details, ip, target_user);
+        }
+        // Get methods with enhanced filtering
         async getByUser(uid, limit = 20, offset = 0){
             return new Promise((res, rej) => {
-                this.db.prepare('SELECT * FROM logs WHERE userid = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?').all(uid, limit, offset, (err, rows) => {
+                this.db.prepare(`
+                    SELECT l.*, u.username as user_username, tu.username as target_username 
+                    FROM logs l
+                    LEFT JOIN users u ON l.userid = u.id
+                    LEFT JOIN users tu ON l.target_user = tu.id
+                    WHERE l.userid = ? 
+                    ORDER BY l.timestamp DESC 
+                    LIMIT ? OFFSET ?
+                `).all(uid, limit, offset, (err, rows) => {
                     if (err) return rej(err);
                     res(rows);
                 });
@@ -179,9 +303,75 @@ const _db = new class{
         }
         async getAll(limit = 50, offset = 0){
             return new Promise((res, rej) => {
-                this.db.prepare('SELECT * FROM logs ORDER BY timestamp DESC LIMIT ? OFFSET ?').all(limit, offset, (err, rows) => {
+                this.db.prepare(`
+                    SELECT l.*, u.username as user_username, tu.username as target_username 
+                    FROM logs l
+                    LEFT JOIN users u ON l.userid = u.id
+                    LEFT JOIN users tu ON l.target_user = tu.id
+                    ORDER BY l.timestamp DESC 
+                    LIMIT ? OFFSET ?
+                `).all(limit, offset, (err, rows) => {
                     if (err) return rej(err);
                     res(rows);
+                });
+            });
+        }
+        async getByAction(action, limit = 50, offset = 0){
+            return new Promise((res, rej) => {
+                this.db.prepare(`
+                    SELECT l.*, u.username as user_username, tu.username as target_username 
+                    FROM logs l
+                    LEFT JOIN users u ON l.userid = u.id
+                    LEFT JOIN users tu ON l.target_user = tu.id
+                    WHERE l.action = ? 
+                    ORDER BY l.timestamp DESC 
+                    LIMIT ? OFFSET ?
+                `).all(action, limit, offset, (err, rows) => {
+                    if (err) return rej(err);
+                    res(rows);
+                });
+            });
+        }
+        async getSecurityLogs(limit = 100, offset = 0){
+            return new Promise((res, rej) => {
+                this.db.prepare(`
+                    SELECT l.*, u.username as user_username, tu.username as target_username 
+                    FROM logs l
+                    LEFT JOIN users u ON l.userid = u.id
+                    LEFT JOIN users tu ON l.target_user = tu.id
+                    WHERE l.action LIKE 'security_%' OR l.action LIKE 'login%' OR l.action LIKE 'user_ban%' OR l.action LIKE 'user_suspend%'
+                    ORDER BY l.timestamp DESC 
+                    LIMIT ? OFFSET ?
+                `).all(limit, offset, (err, rows) => {
+                    if (err) return rej(err);
+                    res(rows);
+                });
+            });
+        }
+        async getLogStats(){
+            return new Promise((res, rej) => {
+                this.db.all(`
+                    SELECT 
+                        action,
+                        COUNT(*) as count,
+                        COUNT(DISTINCT userid) as unique_users,
+                        DATE(timestamp) as date
+                    FROM logs 
+                    WHERE timestamp >= date('now', '-30 days')
+                    GROUP BY action, DATE(timestamp)
+                    ORDER BY timestamp DESC
+                `, (err, rows) => {
+                    if (err) return rej(err);
+                    res(rows);
+                });
+            });
+        }
+        // Clean up old logs (keep last 90 days by default)
+        async cleanup(days = 90){
+            return new Promise((res, rej) => {
+                this.db.prepare(`DELETE FROM logs WHERE timestamp < date('now', '-${days} days')`).run(function(err){
+                    if (err) return rej(err);
+                    res(this.changes);
                 });
             });
         }
@@ -193,9 +383,9 @@ const _db = new class{
                 });
             });
         }
-        async deleteById(userid){
+        async deleteById(logid){
             return new Promise((res, rej) => {
-                this.db.prepare('DELETE FROM logs WHERE userid = ?').run(userid, function(err){
+                this.db.prepare('DELETE FROM logs WHERE id = ?').run(logid, function(err){
                     if (err) return rej(err);
                     res(this.changes);
                 });

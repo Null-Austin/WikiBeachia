@@ -241,16 +241,23 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // local middle ware
 app.use(authenticateUser);
 app.use(getHeader);
-app.use(async (req,res,next)=>{ // logging and IP ban checking
+app.use(async (req,res,next)=>{ // Enhanced logging and IP ban checking
   const ip = req.headers['x-forwarded-for'] // Please make sure its a proxy!!!! if its not a proxy, then u risk possbily ip banning the wrong people!! i think
     ? req.headers['x-forwarded-for'].split(',')[0].trim()
     : req.socket.remoteAddress;
+  
+  // Store IP for logging
+  req.clientIP = ip;
   
   // Check if IP is banned (unless it's an admin trying to unban)
   if (!req.url.includes('/api/v1/users/') || !req.url.includes('/unban-ip-accounts')) {
     try {
       const isBanned = await db.bannedIps.isIpBanned(ip);
       if (isBanned) {
+        // Log the blocked access attempt
+        if (settings.logging === 'true') {
+          db.logs.logSecurityAction(0, 'blocked_access_banned_ip', `Blocked access from banned IP to ${req.url}`, ip);
+        }
         return res.status(403).json({ 
           error: 'Access denied', 
           message: 'Your IP address has been banned from accessing this site' 
@@ -261,24 +268,49 @@ app.use(async (req,res,next)=>{ // logging and IP ban checking
     }
   }
   
-  function check(s){
-    return req.url.includes(s)
-  }
   // Store the IP in user record if logged in
   if (req.user) {
     db.users.setIP(req.user.id, ip).catch(err => {
       console.warn('Failed to update user IP:', err);
     });
   }
+  
   next()
+  
+  // Enhanced logging after request processing
   if (settings.logging !== 'true'){
     return
   }
-  let id = 0
-  if (req.user && req.user.id){
-    id = req.user.id
+  
+  let uid = req.user ? req.user.id : 0;
+  
+  // Log different types of requests with appropriate detail
+  try {
+    if (req.url.startsWith('/wiki/')) {
+      // Page views
+      const pageName = req.url.replace('/wiki/', '').split('/')[0] || 'home';
+      db.logs.logPageAction(uid, 'view', pageName, `${req.method} ${req.url}`, ip);
+    } else if (req.url.startsWith('/api/')) {
+      // API calls are logged separately in their handlers
+      return;
+    } else if (req.url.startsWith('/admin/')) {
+      // Admin page access
+      const adminPage = req.url.replace('/admin/', '').split('?')[0] || 'dashboard';
+      db.logs.logAdminAction(uid, 'page_access', `Admin page access: ${adminPage}`, ip);
+    } else if (req.url.startsWith('/user/')) {
+      // User profile access
+      const userPath = req.url.replace('/user/', '');
+      db.logs.add(uid, 'user_profile_view', `User profile access: ${userPath}`, ip);
+    } else if (req.url === '/login' || req.url === '/register') {
+      // Auth page access
+      db.logs.add(uid, 'auth_page_view', req.url, ip);
+    } else {
+      // General page access
+      db.logs.add(uid, 'page_view', req.url, ip);
+    }
+  } catch (err) {
+    console.warn('Failed to log request:', err);
   }
-  db.logs.add(id,req.url) 
 })
 
 // static end points
@@ -439,11 +471,32 @@ app.post('/wiki/:name/edit', async (req, res) => {
   let { name, content } = body;
   let display_name = name;
   name = name.toLowerCase().replace(/\s+/g, '_');
+  
+  // Store original content for logging
+  const originalContent = page.content;
+  const originalDisplayName = page.display_name;
+  
   try {
     // Save previous version before updating
     await db.pages.saveVersion(page.id, page.display_name, page.content, req.user.id);
     await db.pages.updatePage(page.id, name, display_name, content, req.user.id);
+    
+    // Log the page edit with details about changes
+    if (settings.logging === 'true') {
+      const changes = [];
+      if (originalDisplayName !== display_name) changes.push(`title: "${originalDisplayName}" → "${display_name}"`);
+      if (originalContent !== content) changes.push(`content: ${originalContent.length} → ${content.length} characters`);
+      const changeDesc = changes.length > 0 ? ` (${changes.join(', ')})` : '';
+      
+      db.logs.logPageAction(req.user.id, 'edit', name, `Edited page: "${display_name}"${changeDesc}`, req.clientIP);
+    }
+    
   } catch (error) {
+    // Log the failed page edit
+    if (settings.logging === 'true') {
+      db.logs.logPageAction(req.user.id, 'edit_failed', name, `Failed to edit page: "${display_name}" - ${error.message}`, req.clientIP);
+    }
+    console.error('Error editing page:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
   return res.redirect('/wiki/' + name);
@@ -477,9 +530,26 @@ app.post('/wiki/:name/restore', async (req, res) => {
     return res.status(403).json({ error: 'You do not have permission to restore this page.' });
   }
 
-  // Restore the version
-  await db.pages.updatePage(page.id, page.name, version.display_name, version.content, req.user.id);
-  res.redirect('/wiki/' + page.name);
+  try {
+    // Restore the version
+    await db.pages.updatePage(page.id, page.name, version.display_name, version.content, req.user.id);
+    
+    // Log the page restoration
+    if (settings.logging === 'true') {
+      db.logs.logPageAction(req.user.id, 'restore', page.name, `Restored page "${version.display_name}" to version ${versionId} from ${version.edited_at}`, req.clientIP);
+    }
+    
+    res.redirect('/wiki/' + page.name);
+  } catch (error) {
+    console.error('Error restoring page:', error);
+    
+    // Log failed restoration
+    if (settings.logging === 'true') {
+      db.logs.logPageAction(req.user.id, 'restore_failed', page.name, `Failed to restore page to version ${versionId}: ${error.message}`, req.clientIP);
+    }
+    
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 app.get('/user/:uid',async (req,res,next)=>{
   let profile;
@@ -545,10 +615,37 @@ app.post('/user/:uid/edit',async (req,res)=>{
     if (error){
       return res.status(400).redirect('')
     }
+    
+    // Store original values for logging
+    const originalDisplayName = profile.display_name;
+    const originalBio = profile.bio;
+    
     await db.users.modifyUser(profile.id,display_name,bio)
+    
+    // Log the profile update
+    if (settings.logging === 'true') {
+      const changes = [];
+      if (originalDisplayName !== display_name) changes.push(`display name: "${originalDisplayName}" → "${display_name}"`);
+      if (originalBio !== bio) changes.push(`bio: ${originalBio ? originalBio.length : 0} → ${bio.length} characters`);
+      const changeDesc = changes.length > 0 ? ` (${changes.join(', ')})` : '';
+      
+      // Log as user action if editing own profile, admin action if admin editing someone else's profile
+      if (profile.id === user.id) {
+        db.logs.add(user.id, 'profile_edit', `Updated own profile${changeDesc}`, req.clientIP);
+      } else {
+        db.logs.logUserAction(user.id, 'profile_edit_admin', profile.id, `Admin updated profile for ${profile.username}${changeDesc}`, req.clientIP);
+      }
+    }
+    
     return res.redirect(`/user/${profile.id}`)
   } catch (err){
     console.warn(err)
+    
+    // Log failed profile edit
+    if (settings.logging === 'true') {
+      db.logs.add(user?.id || 0, 'profile_edit_failed', `Failed to update profile: ${err.message}`, req.clientIP);
+    }
+    
     return res.status(404).redirect('.')
   }
 })
@@ -863,10 +960,21 @@ app.post('/api/v1/create-page', requireApiRole(10), async (req, res) => {
   let name = display_name.toLowerCase().replace(/\s+/g, '_');
   
   try {
-    await db.pages.createPage(name, display_name, content);
+    const pageId = await db.pages.createPage(name, display_name, content);
+    
+    // Log the page creation
+    if (settings.logging === 'true') {
+      db.logs.logPageAction(req.user.id, 'create', name, `Created page: "${display_name}" (${content.length} characters)`, req.clientIP);
+    }
+    
     res.status(201).json({ message: 'Page created successfully!', url: `/wiki/${name}` });
   } catch (error) {
     console.error('Error creating page:', error);
+    
+    // Log the failed page creation
+    if (settings.logging === 'true') {
+      db.logs.logPageAction(req.user.id, 'create_failed', name, `Failed to create page: "${display_name}" - ${error.message}`, req.clientIP);
+    }
     
     // Handle specific SQLite constraint errors
     if (error.code === 'SQLITE_CONSTRAINT') {
@@ -935,10 +1043,18 @@ app.post('/api/v1/upload-image', requireApiRole(10), m_upload.single('photo'), a
   let file = {size:req.file.size,type:req.file.mimetype}
   // Check file size (5MB limit)
   if (file.size > 5 * 1024 * 1024) {
+    // Log failed upload
+    if (settings.logging === 'true') {
+      db.logs.logMediaAction(req.user.id, 'upload_failed', req.file.originalname, `File too large: ${file.size} bytes`, req.clientIP);
+    }
     return res.status(400).json({error: "File size too large. Maximum allowed size is 5MB."});
   }
 
   if (!file.type.startsWith('image/')) {
+    // Log failed upload
+    if (settings.logging === 'true') {
+      db.logs.logMediaAction(req.user.id, 'upload_failed', req.file.originalname, `Invalid file type: ${file.type}`, req.clientIP);
+    }
     return res.status(400).json({error: "Only image files are allowed."});
   }
   // Generate unique filename
@@ -962,6 +1078,12 @@ app.post('/api/v1/upload-image', requireApiRole(10), m_upload.single('photo'), a
     
     // Save the processed (or original if not processed) image
     fs.writeFileSync(filePath, imageBuffer);
+    
+    // Log successful upload
+    if (settings.logging === 'true') {
+      db.logs.logMediaAction(req.user.id, 'upload', uniqueFilename, `Uploaded image: "${req.file.originalname}" (${file.size} bytes, ${file.type})`, req.clientIP);
+    }
+    
     res.status(200).json({
       message: "Photo uploaded successfully",
       filename: uniqueFilename,
@@ -969,6 +1091,12 @@ app.post('/api/v1/upload-image', requireApiRole(10), m_upload.single('photo'), a
     });
   } catch (error) {
     console.error('Error processing/saving file:', error);
+    
+    // Log failed upload
+    if (settings.logging === 'true') {
+      db.logs.logMediaAction(req.user.id, 'upload_failed', req.file.originalname, `Processing/save error: ${error.message}`, req.clientIP);
+    }
+    
     res.status(500).json({error: "Failed to save file"});
   }
 });
@@ -1034,11 +1162,31 @@ app.post('/api/v1/delete-page', requireApiRole(100), async (req, res) => {
       return res.status(403).json({ error: 'You do not have permission to delete this page.' });
     }
     
+    // Store page info for logging before deletion
+    const pageInfo = {
+      id: page.id,
+      name: page.name,
+      display_name: page.display_name,
+      content_length: page.content ? page.content.length : 0
+    };
+    
     // Delete the page
     await db.pages.deletePage(page.id);
+    
+    // Log the page deletion
+    if (settings.logging === 'true') {
+      db.logs.logPageAction(req.user.id, 'delete', pageInfo.name, `Deleted page: "${pageInfo.display_name}" (${pageInfo.content_length} characters)`, req.clientIP);
+    }
+    
     res.status(200).json({ message: 'Page deleted successfully' });
   } catch (error) {
     console.error('Error deleting page:', error);
+    
+    // Log the failed page deletion
+    if (settings.logging === 'true') {
+      db.logs.logPageAction(req.user.id, 'delete_failed', title, `Failed to delete page: "${title}" - ${error.message}`, req.clientIP);
+    }
+    
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -1104,16 +1252,35 @@ app.post('/api/v1/delete-page', requireApiRole(100), async (req, res) => {
 app.post('/api/v1/login', authLimiter, async (req, res) => {
   const body = req.body;
   if (!body || !body.username || !body.password) {
+    // Log failed login attempt - missing credentials
+    if (settings.logging === 'true') {
+      db.logs.logAuth(0, 'login_attempt', 'Missing username or password', req.clientIP, false);
+    }
     return res.status(400).json({ error: 'Please enter both username and password.' });
   }
   const { username, password, returnTo } = body;
   try {
     const user = await userAuth.login(username, password);
+    
     if (user.account_status === 'suspended') {
+      // Log failed login attempt - suspended account
+      if (settings.logging === 'true') {
+        db.logs.logAuth(user.id, 'login_attempt', 'Account suspended', req.clientIP, false);
+      }
       return res.status(403).json({ error: 'Your account is suspended. Please contact support.' });
     }
+    
     if (user.username === 'admin' && (settings['admin_account_enabled'] === 'false' || settings['admin_account_enabled'] === false)){
+      // Log failed login attempt - admin disabled
+      if (settings.logging === 'true') {
+        db.logs.logAuth(user.id, 'login_attempt', 'Admin account disabled', req.clientIP, false);
+      }
       return res.status(403).json({ error: 'The admin account is currently disabled. Please contact support.' });
+    }
+    
+    // Log successful login
+    if (settings.logging === 'true') {
+      db.logs.logAuth(user.id, 'login', `Successful login from ${req.clientIP}`, req.clientIP, true);
     }
     
     // Set the token as an httpOnly cookie
@@ -1150,6 +1317,11 @@ app.post('/api/v1/login', authLimiter, async (req, res) => {
       }
     });
   } catch (err) {
+    // Log failed login attempt
+    if (settings.logging === 'true') {
+      db.logs.logAuth(0, 'login_attempt', `Failed login for username: ${username} - ${err.message}`, req.clientIP, false);
+    }
+    
     if (err.message === 'Invalid username or password') {
       return res.status(401).json({ error: 'Invalid username or password. Please check your credentials and try again.' });
     }
@@ -1181,6 +1353,11 @@ app.post('/api/v1/login', authLimiter, async (req, res) => {
 app.post('/api/v1/logout', async (req, res) => {
   try {
     if (req.user) {
+      // Log the logout
+      if (settings.logging === 'true') {
+        db.logs.logAuth(req.user.id, 'logout', `User logged out from ${req.clientIP}`, req.clientIP, true);
+      }
+      
       // Clear the token from the database
       try {
         await db.users.setToken(req.user.id, null);
@@ -1246,6 +1423,9 @@ app.post('/api/v1/update-wiki-settings', requireApiRole(100), async (req,res)=>{
     return res.status(400).json({ error: 'Missing required fields' });
   }
   try {
+    // Get current settings for comparison
+    const currentSettings = await db.settings.getSettings();
+    
     // Convert checkbox values from 'on'/'true'/'false' to boolean/string as needed
     const dbSettings = await db.settings.getSettings();
     const updateObj = {};
@@ -1260,11 +1440,31 @@ app.post('/api/v1/update-wiki-settings', requireApiRole(100), async (req,res)=>{
         updateObj[key] = val;
       }
     });
+    
     await db.settings.updateSettings(updateObj);
     await loadSettings();
+    
+    // Log the settings update with details of changes
+    if (settings.logging === 'true') {
+      const changes = [];
+      Object.entries(updateObj).forEach(([key, newVal]) => {
+        if (currentSettings[key] !== newVal) {
+          changes.push(`${key}: "${currentSettings[key]}" → "${newVal}"`);
+        }
+      });
+      const changeDesc = changes.length > 0 ? changes.join(', ') : 'no changes detected';
+      db.logs.logAdminAction(req.user.id, 'settings_update', `Updated wiki settings: ${changeDesc}`, req.clientIP);
+    }
+    
     res.status(200).json({ message: 'Wiki settings updated successfully' });
   } catch (err) {
     console.error('Error updating wiki settings:', err);
+    
+    // Log failed settings update
+    if (settings.logging === 'true') {
+      db.logs.logAdminAction(req.user.id, 'settings_update_failed', `Failed to update wiki settings: ${err.message}`, req.clientIP);
+    }
+    
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -1334,7 +1534,12 @@ app.post('/api/v1/users/apply', authLimiter, async (req, res) => {
     return res.status(400).json({ error: error.details[0].message });
   }
   try{
-    await db.applications.create(username,password,email,reason)
+    const appId = await db.applications.create(username,password,email,reason);
+    
+    // Log the application submission
+    if (settings.logging === 'true') {
+      db.logs.logUserAction(0, 'application_submit', null, `Application submitted by ${username} (${email}): ${reason.substring(0, 100)}...`, req.clientIP);
+    }
     
     // Clear any previous returnTo cookie
     res.clearCookie('returnTo');
@@ -1353,6 +1558,12 @@ app.post('/api/v1/users/apply', authLimiter, async (req, res) => {
     });
   } catch(err){
     console.error('Error creating application:', err);
+    
+    // Log failed application
+    if (settings.logging === 'true') {
+      db.logs.logUserAction(0, 'application_failed', null, `Failed application for ${username}: ${err.message}`, req.clientIP);
+    }
+    
     res.status(500).json({ error: 'We encountered an issue while processing your application. Please try again later.' });
   }
 });
@@ -1553,12 +1764,25 @@ app.post('/api/v1/users/register', requireApiRole(100), async(req,res)=>{
     if (!application) {
       return res.status(404).json({ error: 'Application not found' });
     }
+    
     // Password is already hashed in the application, so use db.users.create directly
-    await db.users.create(application.username, application.password, application.username, 10);
+    const newUserId = await db.users.create(application.username, application.password, application.username, 10);
     await db.applications.delete(id);
+    
+    // Log the application approval
+    if (settings.logging === 'true') {
+      db.logs.logAdminAction(req.user.id, 'application_approve', `Approved application for ${application.username} (${application.email})`, req.clientIP, application.username);
+    }
+    
     res.status(200).json({ message: 'User registered successfully' });
   } catch (err) {
     console.error('Error registering user:', err);
+    
+    // Log failed approval
+    if (settings.logging === 'true') {
+      db.logs.logAdminAction(req.user.id, 'application_approve_failed', `Failed to approve application ${id}: ${err.message}`, req.clientIP);
+    }
+    
     res.status(500).json({ error: 'Internal server error' });
   }
 })
@@ -1989,12 +2213,24 @@ app.post('/api/v1/users/:id/suspend', requireApiRole(100), async (req, res) => {
     const newStatus = userToUpdate.account_status === 'suspended' ? 'active' : 'suspended';
     await db.users.modifyStatus(userId, newStatus);
     
+    // Log the suspension/unsuspension
+    if (settings.logging === 'true') {
+      const action = newStatus === 'suspended' ? 'suspend' : 'unsuspend';
+      db.logs.logUserAction(req.user.id, action, userId, `${action.charAt(0).toUpperCase() + action.slice(1)}ed user: ${userToUpdate.username} (${userToUpdate.display_name})`, req.clientIP);
+    }
+    
     res.status(200).json({ 
       message: `User ${newStatus === 'suspended' ? 'suspended' : 'unsuspended'} successfully`,
       newStatus: newStatus
     });
   } catch (err) {
     console.error('Error suspending/unsuspending user:', err);
+    
+    // Log failed action
+    if (settings.logging === 'true') {
+      db.logs.logUserAction(req.user.id, 'suspend_failed', userId, `Failed to suspend/unsuspend user ${userId}: ${err.message}`, req.clientIP);
+    }
+    
     if (err.message === 'User not found') {
       res.status(404).json({ error: 'User not found' });
     } else {
@@ -2331,6 +2567,14 @@ app.get('/admin/applications',async (req,res)=>{
   }
 })
 
+app.get('/admin/logs', async (req, res) => {
+  res.render('admin/logs', {
+    header: req._header,
+    user: req.user,
+    wiki: settings
+  });
+});
+
 /**
  * @swagger
  * /api/v1/ip-bans:
@@ -2434,6 +2678,241 @@ app.get('/admin/applications',async (req,res)=>{
  *       404:
  *         description: User not found
  */
+/**
+ * @swagger
+ * /api/v1/logs:
+ *   get:
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     summary: Get system logs
+ *     description: Get paginated system logs (admin only)
+ *     tags:
+ *       - Administration
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *           maximum: 200
+ *         description: Number of logs per page
+ *       - in: query
+ *         name: action
+ *         schema:
+ *           type: string
+ *         description: Filter by specific action type
+ *       - in: query
+ *         name: user_id
+ *         schema:
+ *           type: integer
+ *         description: Filter by user ID
+ *       - in: query
+ *         name: security_only
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *         description: Show only security-related logs
+ *     responses:
+ *       200:
+ *         description: Logs retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 logs:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       userid:
+ *                         type: integer
+ *                       user_username:
+ *                         type: string
+ *                       action:
+ *                         type: string
+ *                       details:
+ *                         type: string
+ *                       ip_hash:
+ *                         type: string
+ *                       target_user:
+ *                         type: integer
+ *                       target_username:
+ *                         type: string
+ *                       target_resource:
+ *                         type: string
+ *                       timestamp:
+ *                         type: string
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     currentPage:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *                     totalLogs:
+ *                       type: integer
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Insufficient permissions
+ */
+app.get('/api/v1/logs', requireApiRole(100), async (req, res) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit) || 50));
+    const offset = (page - 1) * limit;
+    const action = req.query.action;
+    const userId = req.query.user_id ? parseInt(req.query.user_id) : null;
+    const securityOnly = req.query.security_only === 'true';
+    
+    let logs;
+    
+    if (securityOnly) {
+      logs = await db.logs.getSecurityLogs(limit, offset);
+    } else if (action) {
+      logs = await db.logs.getByAction(action, limit, offset);
+    } else if (userId) {
+      logs = await db.logs.getByUser(userId, limit, offset);
+    } else {
+      logs = await db.logs.getAll(limit, offset);
+    }
+    
+    // For pagination, we'll estimate total based on the number of results returned
+    // This is not perfect but avoids an expensive COUNT query
+    const hasMore = logs.length === limit;
+    const totalPages = hasMore ? page + 1 : page;
+    
+    res.json({
+      logs: logs,
+      pagination: {
+        currentPage: page,
+        totalPages: totalPages,
+        hasNextPage: hasMore,
+        hasPrevPage: page > 1
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching logs:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/v1/logs/stats:
+ *   get:
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     summary: Get log statistics
+ *     description: Get statistics about logged actions over the last 30 days (admin only)
+ *     tags:
+ *       - Administration
+ *     responses:
+ *       200:
+ *         description: Statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 stats:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       action:
+ *                         type: string
+ *                       count:
+ *                         type: integer
+ *                       unique_users:
+ *                         type: integer
+ *                       date:
+ *                         type: string
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Insufficient permissions
+ */
+app.get('/api/v1/logs/stats', requireApiRole(100), async (req, res) => {
+  try {
+    const stats = await db.logs.getLogStats();
+    res.json({ stats });
+  } catch (error) {
+    console.error('Error fetching log stats:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/v1/logs/cleanup:
+ *   post:
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     summary: Clean up old logs
+ *     description: Delete logs older than specified days (admin only, default 90 days)
+ *     tags:
+ *       - Administration
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               days:
+ *                 type: integer
+ *                 default: 90
+ *                 description: Number of days to keep logs
+ *     responses:
+ *       200:
+ *         description: Cleanup completed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 deleted_count:
+ *                   type: integer
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Insufficient permissions
+ */
+app.post('/api/v1/logs/cleanup', requireApiRole(100), async (req, res) => {
+  try {
+    const days = req.body.days || 90;
+    const deletedCount = await db.logs.cleanup(days);
+    
+    // Log the cleanup action
+    if (settings.logging === 'true') {
+      db.logs.logAdminAction(req.user.id, 'logs_cleanup', `Cleaned up ${deletedCount} logs older than ${days} days`, req.clientIP);
+    }
+    
+    res.json({
+      message: `Successfully deleted ${deletedCount} logs older than ${days} days`,
+      deleted_count: deletedCount
+    });
+  } catch (error) {
+    console.error('Error cleaning up logs:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.post('/api/v1/users/:id/ban-individual', requireApiRole(100), async (req, res) => {
   const userId = parseInt(req.params.id);
   if (!userId) {
@@ -2460,11 +2939,22 @@ app.post('/api/v1/users/:id/ban-individual', requireApiRole(100), async (req, re
     // Update user status to suspended
     await db.users.modifyStatus(userId, 'suspended');
 
+    // Log the individual ban
+    if (settings.logging === 'true') {
+      db.logs.logSecurityAction(req.user.id, 'user_ban_individual', `Banned individual user: ${user.username} (${user.display_name})`, req.clientIP, userId);
+    }
+
     res.status(200).json({ 
       message: `Successfully banned user: ${user.username}` 
     });
   } catch (error) {
     console.error('Error banning user:', error);
+    
+    // Log failed ban attempt
+    if (settings.logging === 'true') {
+      db.logs.logSecurityAction(req.user.id, 'user_ban_failed', `Failed to ban user ${userId}: ${error.message}`, req.clientIP);
+    }
+    
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -2493,6 +2983,11 @@ app.post('/api/v1/users/:id/ban-ip-accounts', requireApiRole(100), async (req, r
     // Note: user.ip is already hashed when stored in database
     const bannedCount = await db.bannedIps.banAccountsByHashedIp(user.ip, req.user.id);
     
+    // Log the IP ban
+    if (settings.logging === 'true') {
+      db.logs.logSecurityAction(req.user.id, 'ip_ban', `IP ban: banned ${bannedCount} accounts associated with user ${user.username}'s IP`, req.clientIP, userId);
+    }
+    
     if (bannedCount === 0) {
       res.status(200).json({ 
         message: 'No additional accounts found with this IP address (user may be the only account with this IP)',
@@ -2506,6 +3001,12 @@ app.post('/api/v1/users/:id/ban-ip-accounts', requireApiRole(100), async (req, r
     }
   } catch (error) {
     console.error('Error banning accounts:', error);
+    
+    // Log failed IP ban
+    if (settings.logging === 'true') {
+      db.logs.logSecurityAction(req.user.id, 'ip_ban_failed', `Failed to IP ban accounts for user ${userId}: ${error.message}`, req.clientIP);
+    }
+    
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -2568,12 +3069,24 @@ app.post('/api/v1/users/:id/unban-ip-accounts', requireApiRole(100), async (req,
 
     // Unban all accounts with this hashed IP
     const unbannedCount = await db.bannedIps.unbanAccountsByHashedIp(user.ip);
+    
+    // Log the IP unban
+    if (settings.logging === 'true') {
+      db.logs.logSecurityAction(req.user.id, 'ip_unban', `IP unban: unbanned ${unbannedCount} accounts associated with user ${user.username}'s IP`, req.clientIP, userId);
+    }
+    
     res.status(200).json({ 
       message: `Successfully unbanned ${unbannedCount} accounts associated with this user's IP`,
       unbannedCount 
     });
   } catch (error) {
     console.error('Error unbanning accounts:', error);
+    
+    // Log failed IP unban
+    if (settings.logging === 'true') {
+      db.logs.logSecurityAction(req.user.id, 'ip_unban_failed', `Failed to IP unban accounts for user ${userId}: ${error.message}`, req.clientIP);
+    }
+    
     res.status(500).json({ error: 'Internal server error' });
   }
 });
