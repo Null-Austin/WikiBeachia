@@ -369,7 +369,7 @@ const _db = new class{
         // Clean up old logs (keep last 90 days by default)
         async cleanup(days = 90){
             return new Promise((res, rej) => {
-                this.db.prepare(`DELETE FROM logs WHERE timestamp < date('now', '-${days} days')`).run(function(err){
+                this.db.prepare(`DELETE FROM logs WHERE timestamp < datetime('now', '-${days} days')`).run(function(err){
                     if (err) return rej(err);
                     res(this.changes);
                 });
