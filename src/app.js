@@ -1,6 +1,6 @@
 // pneumonoultramicroscopicsilicovolcanoconiosis settings. if you ask https://hackclub.slack.com/archives/C0266FRGV/p1754128156676119
 const pneumonoultramicroscopicsilicovolcanoconiosis = process.argv.includes('-t')
-const release = true
+const release = false
 
 // Node modules
 const path = require('node:path');
