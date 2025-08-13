@@ -1,5 +1,4 @@
 node_modules
-package_lock.json
 *.db*
 getDevblogs.js
 .vscode
@@ -7,3 +6,5 @@ getDevblogs.js
 *.VSCodeCounter*
 src/media/user/*
 !*.gitkeep
+.env
+package-lock.json
