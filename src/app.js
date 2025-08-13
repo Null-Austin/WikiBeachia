@@ -11,6 +11,7 @@ const express = require('express');
 const ejs = require('ejs');
 const colors = require('colors/safe');
 const cookieParser = require('cookie-parser');
+require('dotenv').config()
 const markdownit = require('markdown-it')
   // markdownit plugins
   const markdownitfootnote = require('markdown-it-footnote')
