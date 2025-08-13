@@ -556,10 +556,14 @@ app.get('/user/:uid',async (req,res,next)=>{
   let profile;
   try{
     profile = await db.users.getById(req.params.uid)
+    let markdownEnabled = profile.markdown || false;
+    let renderedBio = profile.bio ? (!markdownEnabled ? md.render(profile.bio) : profile.bio) : '';
+    let style = mathjaxInstance.outputStyle()
     res.render('user',{
-      header: req._header,
+      header: `${req._header} <style>${style}</style>`,
       wiki:settings,
       profile:profile,
+      renderedBio: renderedBio,
       user:req.user
     })
   } catch (err){
@@ -588,6 +592,50 @@ app.get('/user/:uid/edit',async (req,res,next)=>{
     formconfig.formTitle = `${profile.display_name}'s Userpage`
     formconfig.fields[0].value = profile.display_name
     formconfig.fields[1].value = profile.bio
+    formconfig.head = `<script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('.dynamic-form');
+        if (form) {
+          form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(form);
+            const data = {};
+            
+            // Collect form data
+            for (let [key, value] of formData.entries()) {
+              data[key] = value;
+            }
+            
+            try {
+              const response = await fetch(form.action, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+              });
+              
+              const result = await response.json();
+              
+              if (response.ok) {
+                notifications.success(result.message || 'Profile updated successfully!');
+                if (result.redirectUrl) {
+                  setTimeout(() => {
+                    window.location.href = result.redirectUrl;
+                  }, 1500);
+                }
+              } else {
+                notifications.error(result.error || 'Something went wrong');
+              }
+            } catch (error) {
+              console.error('Error:', error);
+              notifications.error('Network error. Please try again.');
+            }
+          });
+        }
+      });
+    </script>`
     renderForm(res,req,formconfig)
   } catch (err){
     console.warn(colors.yellow(`couldnt show profile: ${err}`))
@@ -597,31 +645,64 @@ app.get('/user/:uid/edit',async (req,res,next)=>{
 app.post('/user/:uid/edit',async (req,res)=>{
   let profile;
   let user;
+  
+  // Function to handle responses based on request type
+  const sendResponse = (statusCode, data, isError = false) => {
+    // Check if this is an AJAX request (API-style)
+    if (req.headers.accept && req.headers.accept.includes('application/json') || 
+        req.headers['content-type'] && req.headers['content-type'].includes('application/json')) {
+      return res.status(statusCode).json(data);
+    }
+    
+    // For regular form submissions, redirect or render with message
+    if (isError) {
+      // For errors, redirect back to the edit page with error in URL params
+      return res.redirect(`/user/${req.params.uid}/edit?error=${encodeURIComponent(data.error)}`);
+    } else {
+      // For success, redirect to profile page
+      return res.redirect(data.redirectUrl || `/user/${req.params.uid}`);
+    }
+  };
+
   try{
     profile = await db.users.getById(req.params.uid)
     user = req.user
     if (!profile || !user){
-      return res.status(403)
+      console.log('Missing profile or user:', { profile: !!profile, user: !!user });
+      return sendResponse(403, { error: 'Access denied' }, true);
     }
     if (profile.id !== user.id){
-      if (user.role < 100 && user.role >= profile.role){
-        return res.status(403)
+      if (user.role < 100 || user.role < profile.role){
+        console.log('Permission denied:', { userRole: user.role, profileId: profile.id, userId: user.id });
+        return sendResponse(403, { error: 'No permission to edit this profile' }, true);
       }
     }
-    if (!req.body || !req.body.display_name || !req.body.bio){
-      return res.status(403)
+    
+    console.log('Request body:', req.body);
+    
+    if (!req.body || req.body.display_name === undefined || req.body.bio === undefined){
+      console.log('Missing required fields in request body');
+      return sendResponse(400, { error: 'Missing required fields: display_name and bio' }, true);
     }
-    let {display_name, bio} = req.body
-    let {error,value} = schemas.bioSchema.validate(req.body)
+    
+    let {display_name, bio} = req.body;
+    
+    // Allow empty bio
+    bio = bio || '';
+    
+    let {error, value} = schemas.bioSchema.validate({display_name, bio});
     if (error){
-      return res.status(400).redirect('')
+      console.log('Validation error:', error.details);
+      return sendResponse(400, { error: error.details[0].message }, true);
     }
     
     // Store original values for logging
     const originalDisplayName = profile.display_name;
     const originalBio = profile.bio;
     
-    await db.users.modifyUser(profile.id,display_name,bio)
+    console.log('Updating user:', { profileId: profile.id, display_name, bioLength: bio.length });
+    
+    await db.users.modifyUser(profile.id, display_name, bio)
     
     // Log the profile update
     if (settings.logging === 'true') {
@@ -638,16 +719,20 @@ app.post('/user/:uid/edit',async (req,res)=>{
       }
     }
     
-    return res.redirect(`/user/${profile.id}`)
+    console.log('Profile updated successfully, redirecting to /user/' + profile.id);
+    return sendResponse(200, { 
+      message: 'Profile updated successfully!', 
+      redirectUrl: `/user/${profile.id}` 
+    });
   } catch (err){
-    console.warn(err)
+    console.error('Error updating profile:', err)
     
     // Log failed profile edit
     if (settings.logging === 'true') {
       db.logs.add(user?.id || 0, 'profile_edit_failed', `Failed to update profile: ${err.message}`, req.clientIP);
     }
     
-    return res.status(404).redirect('.')
+    return sendResponse(500, { error: 'Internal server error: ' + err.message }, true);
   }
 })
 

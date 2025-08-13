@@ -17,7 +17,7 @@
             <%= profile.display_name %>
             <span style="color: gray; font-size:26px">(<%= profile.username %>)</span>
         </h1>
-        <p><%= profile.bio %></p>
+        <div><%- renderedBio %></div>
     </div>
     <% if (user && profile.username == user.username) { %>
         <div id="edit" style="width: 100%; margin:0 auto; text-align: center;">

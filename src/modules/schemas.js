@@ -26,10 +26,9 @@ const _schemas = new class {
             .allow('')
             .message('Bio must be 500 characters or fewer'),
         display_name: joi.string()
-            .pattern(/^[a-zA-Z0-9_\- ]+$/)
-            .min(3)
+            .min(1)
             .max(32)
-            .message('Display name may contain letters, numbers, spaces, underscores, and hyphens, and must be 3-32 characters long')
+            .message('Display name must be 1-32 characters long')
             .required()
     })
 }()
