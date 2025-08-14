@@ -23,7 +23,7 @@
                     <div class="form-group">
                         <% if (field.type !== 'checkbox') { %>
                             <label for="<%= field.name %>">
-                                <%= field.label %>
+                                <%- field.label %>
                                 <% if (field.required) { %>
                                     <span style="color: red;">*</span>
                                 <% } %>
@@ -64,7 +64,7 @@
                                     <%= field.required ? 'required' : '' %>
                                 >
                                 <label for="<%= field.name %>" class="checkbox-label">
-                                    <%= field.label %>
+                                    <%- field.label %>
                                     <% if (field.required) { %>
                                         <span style="color: red;">*</span>
                                     <% } %>
