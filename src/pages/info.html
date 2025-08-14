@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= wiki.site_name %>'s TOS</title>
+    <link rel="stylesheet" href="/css/theme-global.css">
+    <link rel="stylesheet" href="/css/index.css">
+    <link rel="stylesheet" href="/css/theme-regular.css">
+    <link rel="stylesheet" href="/css/md.css">
+    <meta property="og:title" content="<%= wiki.site_name %>'s Terms of service">
+    <meta property="og:site_name" content="<%= wiki.site_name %>">
+    <meta property="og:type" content="article">
+    <meta property="og:description" content="<%= wiki.site_name %>'s Terms of service">
+    <meta property="og:image" content="<%= '/favicon.ico' %>">
+</head>
+<body>
+    <%- header %>
+    <div id="main-content">
+        <%- content %>
+    </div>
+</body>
+</html>
