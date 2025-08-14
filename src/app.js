@@ -1429,7 +1429,7 @@ app.post('/api/v1/login', authLimiter, async (req, res) => {
 /**
  * @swagger
  * /api/v1/logout:
- *   post:
+ *   get:
  *     summary: logout
  *     description: log out and clear session
  *     tags:
@@ -1447,7 +1447,7 @@ app.post('/api/v1/login', authLimiter, async (req, res) => {
  *                 redirectUrl:
  *                   type: string
  */
-app.post('/api/v1/logout', async (req, res) => {
+app.get('/api/v1/logout', async (req, res) => {
   try {
     if (req.user) {
       // Log the logout
