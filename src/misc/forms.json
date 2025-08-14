@@ -209,6 +209,18 @@
         "type": "password",
         "placeholder": "Re-enter your password",
         "required": true
+      },
+      {
+        "name": "accepted1",
+        "label": "Do you accept the <b><a href='/tos'>TOS</a></b>?",
+        "type": "checkbox",
+        "required": true
+      },
+      {
+        "name": "accepted2",
+        "label": "Do you accept the <b><a href='/privacy-policy'>Privacy Policy</a></b>?",
+        "type": "checkbox",
+        "required": true
       }
     ]
   },
@@ -227,6 +239,12 @@
         "type": "file",
         "placeholder": "Re-enter your password",
         "required": true
+      },
+      {
+        "name":"accepted",
+        "label":"You are only submitting content, you have full legal rights over?",
+        "type":"checkbox",
+        "required":true
       }
     ]
   }
