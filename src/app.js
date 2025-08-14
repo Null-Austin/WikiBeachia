@@ -314,6 +314,18 @@ app.use(async (req,res,next)=>{ // Enhanced logging and IP ban checking
   }
 })
 
+// markdown
+const md = new markdownit({
+  linkify:true,
+  typographer: true
+});
+md.use(markdownitfootnote)
+md.use(markdownitimgsize.obsidianImgSize)
+md.use(markdownitlazyload.imgLazyload)
+md.use(markdownitalert.alert)
+const mathjaxInstance = markdownitmathjax.createMathjaxInstance()
+const mdIt = md.use(markdownitmathjax.mathjax, mathjaxInstance);
+
 // static end points
 app.get('/', async (req, res) => {
   res.redirect('/wiki/home');
@@ -321,6 +333,16 @@ app.get('/', async (req, res) => {
 app.get('/Robots.txt',(req,res)=>{
   res.sendFile(path.join(__dirname,'misc/robots.txt'))
 })
+app.get('/tos', async (req, res) => {
+  let page = fs.readFileSync(path.join(__dirname,'misc','tos.md'),'utf8')
+  page = md.render(page)
+  res.status(200).render('info.html',{'content':page, wiki:settings,'header':req._header})
+});
+app.get('/privacy-policy', async (req, res) => {
+  let page = fs.readFileSync(path.join(__dirname,'misc','privacy-policy.md'),'utf8')
+  page = md.render(page)
+  res.status(200).render('info.html',{'content':page, wiki:settings,'header':req._header})
+});
 app.get('/wiki/', (req, res) => {
   res.redirect('/');
 });
@@ -388,22 +410,11 @@ if (pneumonoultramicroscopicsilicovolcanoconiosis){
   })
 }
 
-// markdown
-const md = new markdownit({
-  linkify:true,
-  typographer: true
-});
-md.use(markdownitfootnote)
-md.use(markdownitimgsize.obsidianImgSize)
-md.use(markdownitlazyload.imgLazyload)
-md.use(markdownitalert.alert)
-const mathjaxInstance = markdownitmathjax.createMathjaxInstance()
-const mdIt = md.use(markdownitmathjax.mathjax, mathjaxInstance);
-
 // dynamic endpoints
 app.get('/wiki/:name', async (req, res) => {
   try {
     let page = await db.pages.getPage(req.params.name)
+    // console.log(page)
     page.url = req.originalUrl
     let markdownEnabled = page.markdown || false;
     let content = !markdownEnabled ? md.render(page.content) : page.content
