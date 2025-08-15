@@ -336,12 +336,12 @@ app.get('/Robots.txt',(req,res)=>{
 app.get('/tos', async (req, res) => {
   let page = fs.readFileSync(path.join(__dirname,'misc','tos.md'),'utf8')
   page = md.render(page)
-  res.status(200).render('info.html',{'content':page, wiki:settings,'header':req._header})
+  res.status(200).render('info.html',{'content':page, wiki:settings,'header':req._header, name:`${settings.site_name}'s TOS`})
 });
 app.get('/privacy-policy', async (req, res) => {
   let page = fs.readFileSync(path.join(__dirname,'misc','privacy-policy.md'),'utf8')
   page = md.render(page)
-  res.status(200).render('info.html',{'content':page, wiki:settings,'header':req._header})
+  res.status(200).render('info.html',{'content':page, wiki:settings,'header':req._header,name:`${settings.site_name}'s Privacy Policy`})
 });
 app.get('/wiki/', (req, res) => {
   res.redirect('/');
