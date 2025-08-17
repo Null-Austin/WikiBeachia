@@ -7,6 +7,7 @@ const path = require('node:path');
 const fs = require('node:fs'); 
 
 // third party modules
+const { SitemapStream, streamToPromise, CHANGEFREQ } = require('sitemap')
 const express = require('express');
 const ejs = require('ejs');
 const colors = require('colors/safe');
@@ -327,11 +328,48 @@ const mathjaxInstance = markdownitmathjax.createMathjaxInstance()
 const mdIt = md.use(markdownitmathjax.mathjax, mathjaxInstance);
 
 // static end points
+app.get('/sitemap.xml', async (req, res) => {
+  try {
+    const smStream = new SitemapStream({ hostname: settings.hostname || 'http://localhost:3000' })
+    
+    // Get all pages
+    const pages = await db.pages.getAllPages();
+    
+    // Add all wiki pages
+    pages.forEach(page => {
+      // Higher priority for home page, standard for others
+      const priority = (page.name === 'home' || page.display_name?.toLowerCase() === 'home') ? 1.0 : 0.7;
+      
+      smStream.write({
+        url: `/wiki/${page.name}`,
+        changefreq: "weekly",
+        priority: priority
+      });
+    });
+    
+    // Add essential static pages
+    smStream.write({url: "/", changefreq: "daily", priority: 1.0});
+    smStream.write({url: "/articles", changefreq: "daily", priority: 0.8});
+    smStream.write({url: "/tos", changefreq: "yearly", priority: 0.3});
+    smStream.write({url: "/privacy-policy", changefreq: "yearly", priority: 0.3});
+    
+    smStream.end()
+    const xml = await streamToPromise(smStream).then(sm => sm.toString())
+    res.header('Content-Type', 'application/xml').send(xml)
+  } catch (error) {
+    console.error('Error generating sitemap:', error);
+    res.status(500).send('Error generating sitemap');
+  }
+});
+
 app.get('/', async (req, res) => {
   res.redirect('/wiki/home');
 });
-app.get('/Robots.txt',(req,res)=>{
+app.get('/robots.txt',(req,res)=>{
   res.sendFile(path.join(__dirname,'misc/robots.txt'))
+})
+app.get('/Robots.txt',(req,res)=>{
+  res.redirect(301, '/robots.txt');
 })
 app.get('/tos', async (req, res) => {
   let page = fs.readFileSync(path.join(__dirname,'misc','tos.md'),'utf8')

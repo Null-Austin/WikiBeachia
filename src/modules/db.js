@@ -100,6 +100,7 @@ const _db = new class{
                 ('admin_account_enabled', 'true', 'please make your own admin account in prod'),
                 ('icon','icon.png','uh, icon url :)'),
                 ('logging','true','Is logging enabled?'),
+                ('hostname','https://wiki.null-austin.me','Host name of the application, such as https://google.com'),
                 ('applications','true','is registration application based?');
         `;
         // Check if 'bio' column exists, and add it if not
