@@ -167,7 +167,7 @@
                 <span class="_role"></span>
                 <select class="_role-input" style="display: none;">
                     <option value="0">None (0)</option>
-                    <option value="1">User (10)</option>
+                    <option value="10">User (10)</option>
                     <option value="100">Admin (100)</option>
                 </select>
             </p>
@@ -231,6 +231,7 @@
                                 if (user.role === 100) roleText = 'Admin';
                                 else if (user.role === 1) roleText = 'Verified User';
                                 else if (user.role === 0) roleText = 'User';
+                                else roleText = "Misc"
                                 %>
                                 <%= roleText %> (<%= user.role %>)
                             </td>

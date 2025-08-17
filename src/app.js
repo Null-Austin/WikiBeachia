@@ -2160,7 +2160,7 @@ app.put('/api/v1/users/:id', requireApiRole(100), async (req, res) => {
   
   // Validate role
   const roleNum = parseInt(role);
-  if (![0, 1, 50, 100].includes(roleNum)) {
+  if (![0,10,100].includes(roleNum)) {
     return res.status(400).json({ error: 'Invalid role value' });
   }
   
